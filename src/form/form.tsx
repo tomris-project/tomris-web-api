@@ -5,7 +5,7 @@ import { Alert } from "reactstrap";
 import { ScreenControllerAction, ScreenRef } from "../screen";
 import { WithScreenController } from "../hocs/withController";
 export interface FormRef extends ScreenControllerAction<iFormProps> {
-  
+
 }
 
 interface ObjectRefs {
@@ -118,9 +118,12 @@ export const useForm = () => {
 
   let ref = useRef<FormRef>(null);
   const enhanced = WithScreenController(React.forwardRef((props: iFormProps, refs: React.ForwardedRef<FormRef>) => {
-    useEffect(() => {
-      ref.current = (refs as React.MutableRefObject<FormRef>).current;
-    }, [refs])
+    if (refs != null)
+      useEffect(() => {
+        ref = refs as any
+      }, [refs])
+    else
+      refs = ref;
     return <FormView {...props} ref={refs} />
   }))
 
@@ -134,8 +137,8 @@ export const useForm = () => {
       }
     }
 
-  }, [ref.current]);
+  }, [ref]);
 
   useForm.View = enhanced;
-  return useState(useForm)[0] 
+  return useState(useForm)[0]
 }

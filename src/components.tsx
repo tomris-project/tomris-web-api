@@ -11,6 +11,7 @@ export { type SelectProps, type ISelectRef } from "./components/select";
 export * as Form from "./form";
 export { type FormRef } from "./form";
 import * as Screen from "./screen";
+import { View } from "./hocs/withLayout";
 export { Screen } 
 export { type ScreenRef } from "./screen";
  
@@ -22,6 +23,7 @@ export const WebApi = {
   Select: Select,
   Checkbox: Checkbox,
   Icon: Icon,
-  IconName: IconName
+  IconName: IconName,
+  View:View
 };
 
