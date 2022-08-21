@@ -4,8 +4,8 @@ import { iLayout, View } from "../hocs/withLayout";
 import { Alert } from "reactstrap"; 
 export interface ScreenRef {
   register: (props: ScreenControllerAction<any>) => void
-  getController: <T, P>(name?: string) => BaseControllerValueRef<T, P>
-  getBaseController: (name?: string) => BaseControllerValueRef<any, any>
+  getController: <T, P>(name?: string) => ScreenControllerAction<any>
+  getBaseController: (name?: string) => ScreenControllerAction<any>
   getValues: () => any
   isValid: () => boolean
   clear: () => void
@@ -14,7 +14,7 @@ export interface ScreenRef {
 
 export interface ScreenControllerAction<T> {
   register: (props: BaseControllerValueRef<any, any>) => void
-  getController: <T, P>(name?: string) => BaseControllerValueRef<T, P>
+  getController: <T, P>(name?: string) =>  BaseControllerValueRef<any, any>
   getBaseController: (name?: string) => BaseControllerValueRef<any, any>
   getValues: () => any
   getProps: () => T
@@ -40,21 +40,28 @@ export const ScreenView = React.forwardRef<ScreenRef, iScreenProps>((props: iScr
   let [refs] = useState<Record<string, ObjectRefs>>(Object.create({}));
   const [open, SetOpen] = useState(false);
   let [alertText, SetAlertText] = useState<string[]>([]);
-  const getBaseController = (name?: string): BaseControllerValueRef<any, any> => {
-    Object.keys(refs).map(t => {
+  const getBaseController = (name?: string): ScreenControllerAction<any> => {
+    
+    
+    let keys = Object.keys(refs);
+    for (let index = 0; index < keys.length; index++) {
+      let t = keys[index];
       if (t == (name ?? t)) {
         return refs[t].event as ScreenControllerAction<any>;
-      }
-    })
+      } 
+    }
+     
     return null;
   }
   const getValues = (): any => {
-    let Data: any = {};
-    Object.keys(refs).map(t => {
+    let Data: any = {}; 
+    let keys = Object.keys(refs);
+    for (let index = 0; index < keys.length; index++) {
+      let t = keys[index];
       if (refs[t].type == ScreenControllerType.Form) {
         Data[t] = refs[t].event.getValues();
       }
-    })
+    } 
     return Data;
   }
   let [ScreenRef] = useState<ScreenRef>({

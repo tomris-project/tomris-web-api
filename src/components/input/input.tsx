@@ -7,7 +7,7 @@ import { iLabel, WithLabel } from "../../hocs/withLabel";
 import { BaseControllerValueRef, BaseProps, ControllerClassType, ControllerType, ValidResponse } from "../../utility/baseRef";
 import { Validator } from "../../utility/validator";
 import { WithController } from "../../hocs/withController";
-export type InputType = 'text' | 'textarea' | 'button' | 'password';
+export type InputType = 'text' | 'textarea' | 'button' | 'password' | 'color';
 
 export interface InputProps extends iLabel, iLayoutTypeProps, BaseProps<string, IInputRef>, React.InputHTMLAttributes<HTMLInputElement> {
   type?: InputType;
@@ -66,7 +66,9 @@ export const Input = WithController<InputProps, IInputRef>(WithLabel<InputProps,
   return <>
     <InputBASE {...propNew} invalid={valid == true ? undefined : true} autoComplete={props.type == "password" ? "one-time-code" : "off"} defaultValue={state} hidden={hidden} innerRef={innerRef} bsSize={propNew.bsSize ?? "sm"}
       onChange={(e) => {
-        thatFnc.setValue(e.target.value, "setValue");
+        try {
+          thatFnc.setValue(e.target.value, "setValue"); 
+        } catch (e) { }
         props.onChange?.(e);
       }}
       onBlur={(e) => {

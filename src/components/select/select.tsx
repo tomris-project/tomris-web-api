@@ -110,11 +110,12 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
     })
   return <>
     <ReactSelect {...propNew}
-      className={classNames("react-select")}
+      className={"react-select"} 
       id={props.id}
       inputId={props.id}
       instanceId={props.id}
-
+      key={props.id} 
+      classNamePrefix={props.id}
       placeholder={props.label}
       styles={customStyles}
       name={props.id}

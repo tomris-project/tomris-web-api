@@ -26,20 +26,25 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
   const [open, SetOpen] = useState(false);
   let [alertText, SetAlertText] = useState<string[]>([]);
   const getBaseController = (name?: string): BaseControllerValueRef<any, any> => {
-    Object.keys(refs).map(t => {
+
+    let keys = Object.keys(refs);
+    for (let index = 0; index < keys.length; index++) {
+      let t = keys[index];
       if (t == (name ?? t)) {
         return refs[t].event as BaseControllerValueRef<any, any>;
-      }
-    })
+      } 
+    }
     return null;
   }
   const getValues = (): any => {
-    let Data: any = {};
-    Object.keys(refs).map(t => {
+    let Data: any = {}; 
+    let keys = Object.keys(refs);
+    for (let index = 0; index < keys.length; index++) {
+      let t = keys[index]; 
       if (refs[t].controllerClass == ControllerClassType.Input) {
         Data[t] = refs[t].event.getValue();
-      }
-    })
+      } 
+    }
     return Data;
   }
   let [FomRef] = useState<FormRef>({

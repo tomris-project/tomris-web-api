@@ -12,18 +12,30 @@ export * as Form from "./form";
 export { type FormRef } from "./form";
 import * as Screen from "./screen";
 import { View } from "./hocs/withLayout";
-export { Screen } 
+import { useUser } from "./userContext/userContext";
+import MyApp, { DATA } from "./userContext/App";
+import { DateView } from "./components/date";
+export { CreateUser } from "./userContext/userContext";
+export { Screen }
 export { type ScreenRef } from "./screen";
- 
+
 export const WebApi = {
   Form: Form,
-  Screen : Screen,
+  Screen: Screen,
   Button: Button.Button,
-  Input: Input,
-  Select: Select,
-  Checkbox: Checkbox,
+  Controller: {
+    Input: Input,
+    Select: Select,
+    Checkbox: Checkbox,
+    Date: DateView,
+  },
   Icon: Icon,
   IconName: IconName,
-  View:View
+  View: View,
+  useUser: useUser,
+  MyApp: {
+    App: MyApp,
+    DATA: DATA
+  },
 };
 

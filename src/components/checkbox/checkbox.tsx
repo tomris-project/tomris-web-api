@@ -8,7 +8,7 @@ import { BaseControllerValueRef, BaseProps, ControllerClassType, ControllerType,
 import { Validator } from "../../utility/validator";
 import { WithController } from "../../hocs/withController";
 
-export interface CheckboxProps extends iLabel, iLayoutTypeProps, BaseProps<boolean, ICheckboxRef>, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'defaultValue'|'type'|'defaultChecked'> {
+export interface CheckboxProps extends iLabel, iLayoutTypeProps, BaseProps<boolean, ICheckboxRef>, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'defaultValue' | 'type' | 'defaultChecked'> {
 
   bsSize?: 'lg' | 'sm';
   id: string;
@@ -56,15 +56,16 @@ export const Checkbox = WithController<CheckboxProps, ICheckboxRef>(WithLabel<Ch
 
 
   useImperativeHandle(ref, () => (thatFnc));
-  const propNew :any = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "defaultValue", "defaultChecked"]);
+  const propNew: any = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "defaultValue", "defaultChecked"]);
   return <>
     <CheckboxBASE
       {...propNew}
-       invalid={valid == true ? undefined : true}
+      invalid={valid == true ? undefined : true}
       defaultChecked={state}
+      height={20}
       hidden={hidden}
       innerRef={innerRef}
-      style={{display:"flex",minWidth:"30px", height:"30px"}}
+      style={{ display: "flex", minWidth: "30px", height: 24, maxHeight: 24, padding: 0,margin:0 }}
       bsSize={propNew.bsSize ?? "sm"}
       type={"switch"}
       onChange={(e) => {
@@ -74,9 +75,9 @@ export const Checkbox = WithController<CheckboxProps, ICheckboxRef>(WithLabel<Ch
           thatFnc.isValid?.();
         } catch (error) {
 
-        } 
+        }
       }}
-      />
+    />
     <FormFeedback valid={valid == true ? undefined : false}>{validText}</FormFeedback>
   </>;
 })))
