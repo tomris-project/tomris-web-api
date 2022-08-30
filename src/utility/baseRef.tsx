@@ -6,6 +6,7 @@ export enum ControllerType {
     Select = 2,
     Checkbox = 3,
     Date = 4,
+    Number = 5,
     DataTable = 10
 }
 
@@ -53,7 +54,7 @@ export interface BaseControllerActionRef<T> {
     type: ControllerType
 }
 
-export interface BaseControllerValueRef<T, P> extends Omit<BaseControllerActionRef<P>, 'isBlock' | 'setBlock'> {
+export interface BaseControllerValueRef<T, P> extends Omit<BaseControllerActionRef<P>, 'isBlock' | 'setBlock' | 'ref'> {
     getValue: () => T
     setValue: (value: T,ext?:any) => boolean
     clear?:()=>void

@@ -4,6 +4,7 @@ import { iLayout, View } from "../hocs/withLayout";
 import { Alert } from "reactstrap";
 import { ScreenControllerAction, ScreenRef } from "../screen";
 import { WithScreenController } from "../hocs/withController";
+import { IInputNumberRef } from "../components";
 export interface FormRef extends ScreenControllerAction<iFormProps> {
 
 }
@@ -20,6 +21,7 @@ export interface iFormProps extends iLayout {
   onLoad?: (form: FormRef) => void
   alert?: boolean
   screencontroller?: ScreenRef
+  ref?: React.ForwardedRef<FormRef>
 }
 export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardRef<FormRef, iFormProps>((props: iFormProps, ref: React.ForwardedRef<FormRef>) => {
   let [refs] = useState<Record<string, ObjectRefs>>(Object.create({}));
@@ -32,18 +34,18 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
       let t = keys[index];
       if (t == (name ?? t)) {
         return refs[t].event as BaseControllerValueRef<any, any>;
-      } 
+      }
     }
     return null;
   }
   const getValues = (): any => {
-    let Data: any = {}; 
+    let Data: any = {};
     let keys = Object.keys(refs);
     for (let index = 0; index < keys.length; index++) {
-      let t = keys[index]; 
+      let t = keys[index];
       if (refs[t].controllerClass == ControllerClassType.Input) {
         Data[t] = refs[t].event.getValue();
-      } 
+      }
     }
     return Data;
   }
@@ -56,6 +58,7 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
     getProps: () => props,
     getController: (name?) => getBaseController(name),
     getBaseController: getBaseController,
+    getNumberInputController: (name?) => getBaseController(name) as IInputNumberRef,
     getValues: getValues,
     isValid: () => {
       let status: boolean = true;
@@ -105,7 +108,8 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
 
     return childs;
   }
-  let [childs] = useState(recursive(props));
+ // let [childs] = useState(recursive(props));
+  let childs = recursive(props);
   useImperativeHandle(ref, () => (FomRef));
   props.screencontroller?.register(FomRef);
   useEffect(() => {
@@ -117,12 +121,12 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
   </div>);
 }))
 export interface iForm extends FormRef {
-  View: (props: iFormProps) => JSX.Element
+  View: (props: iFormProps, ref?: React.ForwardedRef<FormRef>) => JSX.Element
 }
 export const useForm = () => {
 
   let ref = useRef<FormRef>(null);
-  const enhanced = WithScreenController(React.forwardRef((props: iFormProps, refs: React.ForwardedRef<FormRef>) => {
+  const enhanced = WithScreenController(React.forwardRef((props: iFormProps, refs?: React.ForwardedRef<FormRef>) => {
     if (refs != null)
       useEffect(() => {
         ref = refs as any

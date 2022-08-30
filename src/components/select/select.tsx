@@ -1,7 +1,7 @@
 
 import _ from "lodash";
 import React, { ForwardRefRenderFunction, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
-import { FormFeedback, FormGroup } from "reactstrap"
+import { FormFeedback, FormGroup, Label } from "reactstrap"
 import ReactSelect from "react-select"
 import { PublicBaseSelectProps } from "react-select/base/dist/react-select.cjs"
 import { ActionMeta, OptionsOrGroups, GroupBase } from "react-select/dist/declarations/src/index"
@@ -11,6 +11,7 @@ import { iLabel, WithLabel } from "../../hocs/withLabel";
 import { BaseControllerValueRef, BaseProps, ControllerClassType, ControllerType, ValidResponse } from "../../utility/baseRef";
 import { Validator } from "../../utility/validator";
 import { WithController } from "../../hocs/withController";
+import { Input } from "reactstrap";
 
 
 export interface Options {
@@ -20,6 +21,7 @@ export interface Options {
 }
 
 export interface SelectProps extends iLabel, iLayoutTypeProps, BaseProps<Options, ISelectRef> {
+  id:string
   defaultValue?: Options
   disabled?: boolean
   isClearable?: boolean
@@ -28,30 +30,54 @@ export interface SelectProps extends iLabel, iLayoutTypeProps, BaseProps<Options
   options?: OptionsOrGroups<Options, GroupBase<Options>>
   onChange?: (newValue: Options, actionMeta: ActionMeta<Options>) => void
   onBlur?: React.FocusEventHandler<HTMLInputElement>
+  feedBackBorder?: "right" | "both" | "left"
+  noBorder?: boolean
 }
+export interface SelectAndRadioProps extends SelectProps {
+  radiogroup?: string
+  isradio?: true
+  position?: "vertical" | "horizontal"
+}
+
 
 export interface ISelectRef extends BaseControllerValueRef<Options, SelectProps> {
 
+  setValid?: (val: boolean) => void
 }
 
-export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectProps, ISelectRef>(React.forwardRef<ISelectRef, SelectProps>((props: SelectProps, ref: React.ForwardedRef<ISelectRef>) => {
+export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectProps, ISelectRef>(React.forwardRef<ISelectRef, SelectProps>((props: SelectAndRadioProps, ref: React.ForwardedRef<ISelectRef>) => {
   let [stateValue, setStated] = useState<Options>(props.defaultValue);
   let [hidden, setHidden] = useState(props.hidden ?? false);
   let [validText, setValidText] = useState<string>("");
-  let [valid, setValid] = useState<boolean>(true);
+  let [valid, setValided] = useState<boolean>(true);
+  let [validForce, setValidForce] = useState<boolean>(false);
   let [disabled, setDisabled] = useState(props.disabled ?? false);
   // let [notvisible, setNotvisible] = useState(props.notvisible ?? false);
 
+  let [letRadio] = useState<Record<any, any>>(Object.create({}));
+  const isRadio = () => props.isradio == true && props.options.length < 6;
   const setValue = (value: Options, key: string) => {
-    if (key !== "setData") {
-      if (value == null) {
-        innerRef.current.clearValue();
+    try {
+
+      if (isRadio()) {
+        if (letRadio[value.value] != null) {
+          letRadio[value.value].current.checked = true;
+        }
+
       } else {
-        innerRef.current.setValue(value);
+        if (key !== "setData") {
+          if (value == null) {
+            innerRef.current.clearValue();
+          } else {
+            innerRef.current.setValue(value);
+          }
+        }
       }
+      stateValue = value;
+      setStated(stateValue);
+    } catch (error) {
+
     }
-    stateValue = value;
-    setStated(stateValue);
     return true;
   }
   let innerRef = useRef<any>(null);
@@ -67,9 +93,20 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
     controllerClass: ControllerClassType.Input,
     type: ControllerType.Select,
     isValid: () => {
-      let valid = Validator.ValidCheck(props.onValid, thatFnc, setValid, setValidText);
-      return valid;
-    }
+      if (validForce == false) {
+        let valid = Validator.ValidCheck(props.onValid, thatFnc, setValided, setValidText);
+        return valid;
+      } else {
+        setValided(valid);
+      }
+    },
+    setValid: (val) => {
+      validForce = true;
+      valid = val;
+      setValided(val);
+      setValidForce(true);
+      thatFnc.setValue(stateValue);
+    },
   }
   props.controller?.register(thatFnc)
 
@@ -78,12 +115,20 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
   const propNew = _.omit(props, ["setHiddenLabel", "spacer", "onValid"]);
   const customStyles = {
     control: (provided: any, state: any) => ({
-      ...provided,
-      // background: '#fff',
-      borderColor: valid == true ? provided.borderColor : "red",//'#9e9e9e' ,
+      ...provided, 
+      borderColor: valid == false && (props.feedBackBorder !== "right") ? "red" : provided.borderColor,//'#9e9e9e' ,
+      borderRightColor: valid == false && props.feedBackBorder == "right" ? "red" : provided.borderColor,
+      borderTopColor: valid == false && props.feedBackBorder == "right" ? "red" : provided.borderColor,
+      borderBottomColor: valid == false && props.feedBackBorder == "right" ? "red" : provided.borderColor,
+      borderTopLeftRadius: (props.feedBackBorder == "right" || props.feedBackBorder == "both") ? 0 : provided.borderTopLeftRadius,
+      borderBottomLeftRadius: (props.feedBackBorder == "right"|| props.feedBackBorder == "both") ? 0 : provided.borderBottomLeftRadius,
+      borderTopRightRadius: (props.feedBackBorder == "left" || props.feedBackBorder == "both") ? 0 : provided.borderTopLeftRadius,
+      borderBottomRightRadius: (props.feedBackBorder == "left"|| props.feedBackBorder == "both") ? 0 : provided.borderBottomLeftRadius,
       minHeight: '30px',
       height: '31px',
       boxShadow: state.isFocused ? null : null,
+      borderWidth:(props.noBorder==true)?0:provided.borderWidth
+      
     }),
 
     valueContainer: (provided: any, state: any) => ({
@@ -95,6 +140,7 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
     input: (provided: any, state: any) => ({
       ...provided,
       margin: '0px',
+      borderWidth:(props.noBorder==true)?0:provided.borderWidth
     }),
     indicatorSeparator: (state: any) => ({
       display: 'none',
@@ -107,28 +153,58 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
   if (stateValue != null)
     useEffect(() => {
       thatFnc.setValue(stateValue);
+      thatFnc.isValid?.();
     })
-  return <>
-    <ReactSelect {...propNew}
-      className={"react-select"} 
-      id={props.id}
-      inputId={props.id}
-      instanceId={props.id}
-      key={props.id} 
-      classNamePrefix={props.id}
-      placeholder={props.label}
-      styles={customStyles}
-      name={props.id}
-      options={props.options}
-      ref={innerRef}
-      onChange={(e: any, b) => {
-        thatFnc.setValue(e, "setData");
-        props.onChange?.(e, b);
-        try {
-          thatFnc.isValid?.();
-        } catch (error) {
-        }
-      }} />
-    <FormFeedback style={{ display: (valid == true ? undefined : "block") }} itemID={props.id} valid={valid == true ? undefined : false}>{validText}</FormFeedback>
-  </>;
+  if (isRadio()) {
+
+    let style: any = null;
+    let div: any = { paddingLeft: 40, flex: 1 };
+    if ((propNew.position ?? "vertical") == "horizontal" && props.options?.length < 3) {
+      style = { display: "flex", overflow: "auto", whiteSpace: "nowrap" };
+      div = { paddingLeft: 40, flex: 1 };
+    }
+    const propsRadio: any = _.omit({ ...propNew }, ['options', 'radiogroup', 'isradio', 'defaultValue', 'type', 'onChange', 'isClearable', 'isSearchable', 'isMulti', 'onBlur', 'disabled', 'controller', 'feedBackBorder'])
+    return <>
+      <FormGroup check={true} disabled={disabled} style={{ ...style }}>
+        {(props.options as any[]).map((row, index) => {
+          letRadio[row.value] = useRef(null);
+          return (<div key={props.id + "_" + index.toString()} style={div}>
+            <Label check for={row.value}>
+              <Input type="radio" {...propsRadio} id={row.value} innerRef={letRadio[row.value]} name={props.id} title={row.label} value={row.value} onChange={(e) => {
+                thatFnc.setValue(row, "setData"); props.onChange?.(row, { action: "select-option", option: row });
+                try {
+                  thatFnc.isValid?.();
+                } catch (error) {
+                }
+              }
+              } />{row.label}</Label></div>)
+        })}
+      </FormGroup>
+      <FormFeedback style={{ display: (valid == true ? undefined : "block") }} itemID={props.id} valid={valid == true ? undefined : false}>{validText}</FormFeedback>
+    </>
+  } else {
+    return <>
+      <ReactSelect {...propNew}
+        className={"react-select"}
+        id={props.id}
+        inputId={props.id}
+        instanceId={props.id}
+        key={props.id}
+        classNamePrefix={props.id}
+        placeholder={props.label}
+        styles={customStyles}
+        name={props.id}
+        options={props.options}
+        ref={innerRef}
+        onChange={(e: any, b) => {
+          thatFnc.setValue(e, "setData");
+          props.onChange?.(e, b);
+          try {
+            thatFnc.isValid?.();
+          } catch (error) {
+          }
+        }} />
+      <FormFeedback style={{ display: (valid == true ? undefined : "block") }} itemID={props.id} valid={valid == true ? undefined : false}>{validText}</FormFeedback>
+    </>;
+  }
 })))

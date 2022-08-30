@@ -2,13 +2,13 @@
 import _ from "lodash";
 import { Button as ButtonBASE } from "reactstrap"
 import { iLayoutTypeProps } from "../../hocs/withLayout";
-import { WithLabel } from "../../hocs/withLabel";
+import { iLabel, WithLabel } from "../../hocs/withLabel";
 import { Icon, IconProps } from "../icon/icon";
 import React, { useImperativeHandle, useState } from "react";
 import { BaseControllerActionRef, BaseProps, ControllerClassType, ControllerType } from "../../utility/baseRef";
 
 
-export interface ButtonProps extends iLayoutTypeProps, BaseProps<IButtonRef,ButtonProps>,  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>,'id'>  {
+export interface ButtonProps extends Omit<iLabel, 'id'>, iLayoutTypeProps, Omit<BaseProps<IButtonRef, ButtonProps>, ''>, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'id'> {
   label?: string
   outline?: boolean;
   active?: boolean;
@@ -21,7 +21,7 @@ export interface ButtonProps extends iLayoutTypeProps, BaseProps<IButtonRef,Butt
   iconPosition?: "left" | "right"
 }
 export interface IButtonRef extends BaseControllerActionRef<ButtonProps> {
-  hiddens:boolean
+  hiddens: boolean
 }
 export const Button = WithLabel<ButtonProps, IButtonRef>(React.forwardRef((props: ButtonProps, ref: React.ForwardedRef<IButtonRef>) => {
 
@@ -31,7 +31,7 @@ export const Button = WithLabel<ButtonProps, IButtonRef>(React.forwardRef((props
   const [blocking, setBlocking] = useState(props.blocking ?? false);
   const thatFnc: IButtonRef = {
     isHide: () => hidden,
-    hiddens:hidden,
+    hiddens: hidden,
     setHide: (val: boolean) => {
       setHidden(val);
     },
@@ -44,12 +44,8 @@ export const Button = WithLabel<ButtonProps, IButtonRef>(React.forwardRef((props
     setDisable: (val) => {
       setDisabled(val)
     },
-    // isNotVisible: () => notvisible,
-    // setNotVisible: (value) => {
-    //   setVisible(value);
-    // },
-    isBlock:()=> blocking,
-    setBlock:(val)=> {
+    isBlock: () => blocking,
+    setBlock: (val) => {
       setBlocking(val);
     },
   }
@@ -57,11 +53,11 @@ export const Button = WithLabel<ButtonProps, IButtonRef>(React.forwardRef((props
   useImperativeHandle(ref, () => (thatFnc));
 
 
-  const propsNew = _.omit(props, ["setHiddenLabel", "spacer", "responsive"])
+  const propsNew = _.omit(props, ["setHiddenLabel", "spacer", "responsive","isLabelHidden"])
   return (
-    <ButtonBASE hidden={hidden} {...propsNew} color={props.color ?? "primary"} size={"sm"} style={{ alignContent: "flex-end", alignItems: "flex-end", verticalAlign: "bottom", alignTracks: "end", alignSelf: "end"}}>
-    {(props.icon != null && (props.iconPosition ?? "left") == "left" && (<Icon {...props.icon} />))}
-    {" "}{props.label}{" "}
-    {(props.icon != null && props.iconPosition == "right" && (<Icon {...props.icon} />))}
-  </ButtonBASE>)
+    <ButtonBASE hidden={hidden} {...propsNew} color={props.color ?? "primary"} size={"sm"} style={{ alignContent: "flex-end", alignItems: "flex-end", verticalAlign: "bottom", alignTracks: "end", alignSelf: "end" }}>
+      {(props.icon != null && (props.iconPosition ?? "left") == "left" && (<Icon {...props.icon} />))}
+      {" "}{props.label}{" "}
+      {(props.icon != null && props.iconPosition == "right" && (<Icon {...props.icon} />))}
+    </ButtonBASE>)
 }), false)

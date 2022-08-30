@@ -1,6 +1,6 @@
 
 import _ from "lodash";
-import React, { useImperativeHandle, useRef, useState } from "react";
+import React, { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { FormFeedback, FormGroup, Input as CheckboxBASE } from "reactstrap"
 import { iLayoutTypeProps } from "../../hocs/withLayout";
 import { iLabel, WithLabel } from "../../hocs/withLabel";
@@ -8,35 +8,60 @@ import { BaseControllerValueRef, BaseProps, ControllerClassType, ControllerType,
 import { Validator } from "../../utility/validator";
 import { WithController } from "../../hocs/withController";
 
-export interface CheckboxProps extends iLabel, iLayoutTypeProps, BaseProps<boolean, ICheckboxRef>, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'defaultValue' | 'type' | 'defaultChecked'> {
+export interface CheckboxProps extends iLabel, iLayoutTypeProps, BaseProps<boolean | null, ICheckboxRef>, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'defaultValue' | 'type' | 'defaultChecked' | 'onChange'> {
 
   bsSize?: 'lg' | 'sm';
   id: string;
-  defaultValue?: boolean;
+  defaultValue?: boolean | null;
+  indeterminate?: boolean
+  onChange?: (state: boolean | null) => void
+
 }
 
-export interface ICheckboxRef extends BaseControllerValueRef<boolean, CheckboxProps> {
+export interface ICheckboxRef extends BaseControllerValueRef<boolean | null, CheckboxProps> {
 
 }
 
 export const Checkbox = WithController<CheckboxProps, ICheckboxRef>(WithLabel<CheckboxProps, ICheckboxRef>(React.forwardRef<ICheckboxRef, CheckboxProps>((props: CheckboxProps, ref: React.ForwardedRef<ICheckboxRef>) => {
-  let [state, setState] = useState<boolean>(props.defaultValue as boolean);
+  let [state, setState] = useState<boolean | null>(props.defaultValue as boolean | null);
+
+  const getStartNum = () => {
+    if (state == null && props.indeterminate) {
+      return 2;
+    } else {
+      return state == true ? 1 : 0;
+    }
+  }
+  let [numstate, Setnumstate] = useState<number>(getStartNum());
   let [hidden, setHidden] = useState(props.hidden ?? false);
   let [validText, setValidText] = useState<string>("");
   let [valid, setValid] = useState<boolean>(true);
   let [disabled, setDisabled] = useState(props.disabled ?? false);
-  // let [notvisible, setNotvisible] = useState(props.notvisible ?? false);
 
-  const setValue = (value: boolean, ext: string) => {
-    if (innerRef.current != null && ext != "setValue")
-      innerRef.current.checked = value;
+  let max: number = 1;
+  if (props.indeterminate == true) {
+    max = 2;
+  } 
+  const setValue = (value: boolean | null, ext: string) => { 
     state = value;
+    numstate = getStartNum();
     setState(state);
-    return true;
+    Setnumstate(numstate);
+    ViewStateSet()
+    return true; 
+  }
+
+  const getValue = (): boolean | null => {
+    if (numstate == 0)
+      return false;
+    if (numstate == 1)
+      return true;
+    if (numstate == 2)
+      return null;
   }
   let innerRef = useRef<HTMLInputElement>(null);
   const thatFnc: ICheckboxRef = {
-    getValue: () => state,
+    getValue: getValue,
     setValue: setValue,
     clear: () => setValue(null, null),
     isHide: () => hidden,
@@ -52,30 +77,54 @@ export const Checkbox = WithController<CheckboxProps, ICheckboxRef>(WithLabel<Ch
     }
   }
 
+  const ClickState = () => {
+    if ((numstate) >= max) {
+      numstate = -1;
+    }
+    numstate += 1;
+    ViewStateSet()
+  }
+  const ViewStateSet = () => {
+    innerRef.current.checked = numstate == 1;
+    if (numstate == 2) {
+      innerRef.current.indeterminate = true;
+    }
+    Setnumstate(numstate)
+  }
+
   props.controller?.register(thatFnc)
 
+  useEffect(() => {
+    ViewStateSet()
+  })
 
   useImperativeHandle(ref, () => (thatFnc));
-  const propNew: any = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "defaultValue", "defaultChecked"]);
+  const propNew: any = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "defaultValue", "defaultChecked", "isLabelHidden", "indeterminate"]);
   return <>
     <CheckboxBASE
       {...propNew}
       invalid={valid == true ? undefined : true}
-      defaultChecked={state}
       height={20}
       hidden={hidden}
       innerRef={innerRef}
-      style={{ display: "flex", minWidth: "30px", height: 24, maxHeight: 24, padding: 0,margin:0 }}
+      disabled={disabled}
+      style={{ display: "flex", minWidth: "30px", height: 24, maxHeight: 24, padding: 0, margin: 0, ...props.style }}
       bsSize={propNew.bsSize ?? "sm"}
-      type={"switch"}
-      onChange={(e) => {
-        thatFnc.setValue(e.target.checked, "setValue");
-        props.onChange?.(e);
+      type={"checkbox"}
+      className=""
+      onClick={(e) => {
+        ClickState();
+        props.onChange?.(getValue());
         try {
           thatFnc.isValid?.();
         } catch (error) {
 
         }
+      }}
+      onChange={(e) => {
+        // console.log("checkbox",e.target.checked)
+        // thatFnc.setValue(e.target.checked, "setValue");
+
       }}
     />
     <FormFeedback valid={valid == true ? undefined : false}>{validText}</FormFeedback>

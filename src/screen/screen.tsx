@@ -2,6 +2,7 @@ import React, { ReactNode, useEffect, useImperativeHandle, useMemo, useRef, useS
 import { BaseControllerValueRef, ControllerClassType, ControllerType, ScreenControllerType } from "../utility/baseRef";
 import { iLayout, View } from "../hocs/withLayout";
 import { Alert } from "reactstrap"; 
+import { IInputNumberRef } from "../components";
 export interface ScreenRef {
   register: (props: ScreenControllerAction<any>) => void
   getController: <T, P>(name?: string) => ScreenControllerAction<any>
@@ -13,14 +14,15 @@ export interface ScreenRef {
 
 
 export interface ScreenControllerAction<T> {
-  register: (props: BaseControllerValueRef<any, any>) => void
-  getController: <T, P>(name?: string) =>  BaseControllerValueRef<any, any>
-  getBaseController: (name?: string) => BaseControllerValueRef<any, any>
+  register?: (props: BaseControllerValueRef<any, any>) => void
+  getController?: <T, P>(name?: string) =>  BaseControllerValueRef<any, any>
+  getBaseController?: (name?: string) => BaseControllerValueRef<any, any>
+  getNumberInputController?: (name?: string) => IInputNumberRef
   getValues: () => any
   getProps: () => T
-  isValid: () => boolean
-  getValidText: () => string[]
-  clear: () => void
+  isValid?: () => boolean
+  getValidText?: () => string[]
+  clear?: () => void
   type: ScreenControllerType 
 
 }
@@ -124,9 +126,9 @@ export const ScreenView = React.forwardRef<ScreenRef, iScreenProps>((props: iScr
 
 
 
-  let [childs] = useState(recursive(props));
-
-  console.log(childs);
+  //let [childs] = useState(recursive(props));
+  let childs = recursive(props);
+ 
   useImperativeHandle(ref, () => (ScreenRef));
   useEffect(() => {
     props.onLoad?.(ScreenRef);

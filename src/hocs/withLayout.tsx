@@ -11,8 +11,8 @@ export interface ResponsiveType {
 export interface ResponsiveMainType {
     col: number
 }
-export interface iLayoutTypeProps {
-    spacer?: true | boolean,
+export class iLayoutTypeProps {
+    spacer?: true | boolean
     responsiveSize?: ResponsiveMainType | ResponsiveType
     responsive?: ResponsiveType
 }

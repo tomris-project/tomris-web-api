@@ -33,4 +33,5 @@ MyApp.getInitialProps = async (appContext: any) => {
     ...appProps, pages: Object.keys(appContext), data: users
   }
 }
+
 export default MyApp

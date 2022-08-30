@@ -21,5 +21,5 @@ export const Icon = (props: IconProps) :JSX.Element=> {
   } else {
     Icondata = (Icons as any)[IconName[props.iconName as IconName].toString()]
   } 
-  return (<Icondata size={props.size} color={props.color} />);
+  return (<Icondata size={props.size} color={props.color}  />);
 } 

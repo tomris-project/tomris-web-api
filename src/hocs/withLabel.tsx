@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { Label } from "reactstrap";
 
 
-export interface iLabel {
+export class iLabel {
     label?: string
     hidden?: boolean
-    id: string
+    isLabelHidden?: boolean
+    id?: string
 }
-export const WithLabel = <TT extends iLabel, PP>(WrappedComponent: React.ComponentType<TT>, display: boolean = true) => {
-
+export const WithLabel = <TT extends iLabel, PP>(WrappedComponent: React.ComponentType<TT>, display: boolean = true) => { 
     const enhanced = React.forwardRef<PP, TT>(<K extends TT & iLabel, PP>(props: K, ref?: React.ForwardedRef<PP>) => {
         let [hidden, setHidden] = useState(props.hidden ?? false);
         if (ref == null)
@@ -22,16 +22,16 @@ export const WithLabel = <TT extends iLabel, PP>(WrappedComponent: React.Compone
                 let back = refs.current.setHide;
                 refs.current.setHide = (val: boolean = !hidden) => {
                     back(val);
-                    hidden=val;
+                    hidden = val;
                     setHidden(hidden)
                 }
             }
         })
         return (<>
-            <Label for={props.id} hidden={hidden || display == false} size="sm">
+            {(!(hidden || display == false || props.isLabelHidden) && (<Label for={props.id} size="sm">
                 {props.label}
-            </Label>
-            {display == false && (<div style={{ height: '30px' }}></div>)}
+            </Label>))} 
+            {display == false && props.isLabelHidden !== true && (<div style={{ height: '30px' }}></div>)}
             <WrappedComponent  {...props} ref={ref} />
         </>)
     })
