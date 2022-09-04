@@ -42,7 +42,7 @@ export const Checkbox = WithController<CheckboxProps, ICheckboxRef>(WithLabel<Ch
   if (props.indeterminate == true) {
     max = 2;
   } 
-  const setValue = (value: boolean | null, ext: string) => { 
+  const setValue = (value: boolean | null, ext: string) => {  
     state = value;
     numstate = getStartNum();
     setState(state);
@@ -99,7 +99,7 @@ export const Checkbox = WithController<CheckboxProps, ICheckboxRef>(WithLabel<Ch
   })
 
   useImperativeHandle(ref, () => (thatFnc));
-  const propNew: any = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "defaultValue", "defaultChecked", "isLabelHidden", "indeterminate"]);
+  const propNew: any = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "defaultValue", "defaultChecked", "isLabelHidden", "indeterminate","responsiveSize"]);
   return <>
     <CheckboxBASE
       {...propNew}

@@ -1,23 +1,62 @@
 import { useMemo, useRef, useState } from "react"
 import { Icon, IconName } from "../icon/icon"
-import { ColumnTypeinSide, InsideEffect, ProcessType } from "./datatable"
-
+import { ActionsProps, ColumnTypeinSide, InsideEffect, ProcessType } from "./datatable"
 import { TableColumn } from "react-data-table-component"
-import { ControllerType, WebApi, type IInputRef, type ICheckboxRef, type IInputNumberRef, ISelectRef } from "../../components"
+import { ControllerType, WebApi, type IInputRef, type ICheckboxRef, type IInputNumberRef, ISelectRef } from "../../component"
 import { IDateRef } from "../date"
 import _ from "lodash"
 import { Input } from "../input"
 import { BaseDate } from "../../utility/BaseDate"
-import { Paging } from "./datatableGetData"
-import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Label } from "reactstrap"
+import { ButtonGroup, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Label, UncontrolledDropdown, UncontrolledTooltip } from "reactstrap"
 import { Checkbox } from "../checkbox"
+import { Button } from "../button"
+
+export const ActionsButtons = (act: ActionsProps[], rowData: any, header: boolean, insideEffect: InsideEffect,rowIndex:number) => {
+
+    let actdata = act.filter(t => header == false || t.isColAction === true);
+
+    if (actdata.length > 4) {
+        return (
+            <UncontrolledDropdown tabIndex={1111} style={{ position: "static" }}>
+                <DropdownToggle color="link" size="sm">
+                    <Icon iconName={IconName.MoreVertical} color="black" size={16} />
+                </DropdownToggle>
+                <DropdownMenu tabIndex={9999999999} >
+                    {
+                        actdata.map((row, index) => {
+                            return [
+                                (<DropdownItem key={"PropcAct" + index.toString()+"ROW"+rowIndex.toString()} onClick={(e) => {
+                                    row.onClick(rowData, insideEffect.that(), header);
+                                }}>
+                                    <Icon iconName={row.iconName} color="black" /> {row.label}
+                                </DropdownItem>
+                                ),
+                                (<DropdownItem key={"PropcDivAct" + index.toString()+"ROW"+rowIndex.toString()} divider hidden={(index + 1) == act.length} />)]
+                        })
+                    }
+                </DropdownMenu>
+            </UncontrolledDropdown>
+        )
+    } else if (actdata.length > 0) {
+        return (
+            <ButtonGroup>
+                {
+                    actdata.map((row, index) => {
+                        return [
+                            (<Button color="link" isLabelHidden id={"PropcAct" + index.toString()+"ROW"+rowIndex.toString()} icon={{ iconName: row.iconName, color: row.color, size: row.size }} key={"PropcAct" + index.toString()+"ROW"+rowIndex.toString()} onClick={(e) => {
+                                row.onClick(rowData, insideEffect.that(), header);
+                            }} />
+                            ),
+                            (<UncontrolledTooltip key={"PropcActTooltip" + index.toString()+"ROW"+rowIndex.toString()} target={"PropcAct" + index.toString()+"ROW"+rowIndex.toString()}>{row.label}</UncontrolledTooltip>)]
+                    })
+                }
+            </ButtonGroup>
+        )
+    }
+    return '-';
+}
+
 export const ColumnsDetails = (insideEffect: InsideEffect) => {
-
-
-    // if (insideEffect.state.colsView != null) {
-    //     debugger
-    //     return insideEffect.state.colsView;
-    // }
     let cols: ColumnTypeinSide[] = insideEffect.state.cols;
 
     if (insideEffect.editExcellRef[-1] == null)
@@ -35,7 +74,7 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                     //  if (insideEffect.editExcellRef[-1][c.dataKey] == null)
                     //insideEffect.editExcellRef[-1][c.dataKey] = useRef<ICheckboxRef>(null);
                     colObject = <WebApi.Controller.Checkbox //ref={insideEffect.editExcellRef[-1][c.dataKey]} 
-                    style={{ marginLeft: insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? 18 : null }} id={c.columnName} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}  {...c.columnControllerProps}
+                        style={{ marginLeft: insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? 18 : null }} id={c.columnName} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}  {...c.columnControllerProps}
                         placeholder={c.columnName}
                         label={insideEffect.getProps().filterTypeLabelExcelModeIsShow === true ? c.columnName : null} indeterminate
                         onChange={(e) => {
@@ -50,7 +89,7 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                         id={c.columnName} mode={"range"} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}   {...c.columnControllerProps}
                         placeholder={c.columnName}
                         label={insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? c.columnName : null}
-                        onChange={(e,d,i,chancetype,value) => {
+                        onChange={(e, d, i, chancetype, value) => {
 
                             if (_.isDate(value)) {
                                 return;
@@ -73,10 +112,10 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                     // if (insideEffect.editExcellRef[-1][c.dataKey] == null)
                     // insideEffect.editExcellRef[-1][c.dataKey] = useRef<IInputNumberRef>(null);
                     colObject = <WebApi.Controller.InputNumber //ref={insideEffect.editExcellRef[-1][c.dataKey]}
-                        mode="range" id={c.columnName} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}   {...c.columnControllerProps}
+                        mode="range" id={c.columnName} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}   {...c.columnControllerProps}  type="number"
                         placeholder={c.columnName}
-                        label={insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? c.columnName : null}
-                        onChange={(e,src,val) => {
+                        label={insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? c.columnName : null} currencyOptions={null}
+                        onChange={(e, src, val) => {
                             insideEffect.filterData[c.dataKey] = val; // = insideEffect.editExcellRef[-1][c.dataKey].current.getValue()
                             insideEffect.RederView();
                         }} />
@@ -89,9 +128,9 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                         id={c.columnName} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}    {...c.columnControllerProps}
                         placeholder={c.columnName}
                         label={insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? c.columnName : null}
-                        onChange={(e,val) => {
+                        onChange={(e, val) => {
 
-                            insideEffect.filterData[c.dataKey] =val;// insideEffect.editExcellRef[-1][c.dataKey].current.getValue();
+                            insideEffect.filterData[c.dataKey] = val;// insideEffect.editExcellRef[-1][c.dataKey].current.getValue();
                             insideEffect.RederView();
                         }}
                     />
@@ -111,16 +150,12 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
         let col: TableColumn<any> = {
             name: columnName,
             omit: c.isHidden,
-
-            //cell: (row) => row[c.dataKey],
             sortable: c.columnControllerType == ControllerType.Checkbox ? false : c.isNotSort != true,
             wrap: true,
             button: c.columnControllerType == ControllerType.Checkbox,
-
-
             allowOverflow: true,
             compact: true,
-            reorder: true,
+            reorder: false,
             center: c.columnControllerType == ControllerType.Checkbox,
             id: c.dataKey,
             right: c.columnControllerType == ControllerType.Number,
@@ -159,18 +194,19 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                                 insideEffect.EditView(row, c, e)
                             }} />
                     case ControllerType.Number:
-                        let data = row[c.dataKey];
-                        let isNumberOnly = false;
-                        if (_.isNumber(data)) {
-                            data = { value: row[c.dataKey] };
-                            isNumberOnly = true;
-                        }
                         let refNumbers = useRef<IInputNumberRef>(null);
 
                         insideEffect.editExcellRef[rowIndex][c.dataKey] = refNumbers;
+
+                        let data = row[c.dataKey];
+                        let isNumberOnly = false ;
+                        if (_.isNumber(data)) {
+                            data = { value: row[c.dataKey] };
+                            isNumberOnly = true && c.columnControllerProps?.type!="currency";
+                        }
                         return <WebApi.Controller.InputNumber disabled={disabled} ref={refNumbers} id={c.columnName + rowIndex.toString()} isLabelHidden defaultValue={data} {...c.columnControllerProps}
                             onChange={(e) => {
-                                if (isNumberOnly == true) {
+                                if (isNumberOnly == true && c.columnControllerProps?.type!="currency") {
                                     // row[c.dataKey] = refNumbers.current.getValue().value;
                                     insideEffect.EditView(row, c, refNumbers.current.getValue().value)
                                     return;
@@ -201,6 +237,8 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                 switch (c.columnControllerType) {
                     case ControllerType.Date:
                         return BaseDate.ViewText(row[c.dataKey], (c.columnControllerProps?.type) ?? "date");
+                    case ControllerType.Number: 
+                        return row[c.dataKey] == null ? "" : (_.isNumber(row[c.dataKey]) ? row[c.dataKey] : (row[c.dataKey].value + " "+ row[c.dataKey].currency))
                     case ControllerType.Checkbox:
                         if (row[c.dataKey] == true)
                             return <Icon iconName={IconName.Check} />
@@ -209,7 +247,7 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                 //c.columnControllerType == ControllerType.Date ? BaseDate.ViewText(row[c.dataKey], (c.columnControllerProps?.type) ?? "date") : 
 
 
-                return row[c.dataKey].toString();
+                return row[c.dataKey]?.toString();
             }
         }
 
@@ -218,21 +256,58 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
     })
 
     insideEffect.state.colsView = headerCols as TableColumn<any>[];
+
+    let actions: ActionsProps[] = null
+    if (insideEffect.getProps()?.actions != null) {
+        actions = [...insideEffect.getProps()?.actions];
+    }
+    if (actions == null)
+        actions = [];
+
+    if (insideEffect.getProps()?.eidtMode == "modal") {
+        actions.push({
+            iconName: IconName.Edit, isColAction: false, label: "Edit", onClick: (row, that) => { 
+                insideEffect.EditInsertModal(row,ProcessType.Update); 
+            }
+        })
+    }
+    if (actions.length > 0) {
+
+
+
+
+        let col: TableColumn<any> = {
+            name: ActionsButtons(actions, null, true,insideEffect,-1),
+            sortable: false,
+            wrap: true,
+            button: true,
+            allowOverflow: true,
+            compact: true,
+            reorder: false,
+            center: true,
+            id: "Actions",
+            cell: (row, rowIndex, col, id) => {
+                return ActionsButtons(actions, row, false,insideEffect,rowIndex);
+            }
+        }
+
+        insideEffect.state.colsView = [col, ...insideEffect.state.colsView];
+
+
+    }
     return insideEffect.state.colsView;
-    //}, [insideEffect.renderCols])
-    //   return columns as TableColumn<any>[];
 }
 
 
 export const ColumnsDetailsHides = (insideEffect: InsideEffect) => {
 
 
-    let cols: ColumnTypeinSide[]=insideEffect.state.cols;
+    let cols: ColumnTypeinSide[] = insideEffect.state.cols;
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [render, setRender] = useState(false);
     const [filter, setFilter] = useState("");
     const toggle = () => setDropdownOpen((prevState) => !prevState);
-    let filtCol=  cols.filter(t => t.columnName.toLowerCase().includes(filter));
+    let filtCol = cols.filter(t => t.columnName.toLowerCase().includes(filter));
     return (
         <Dropdown isOpen={dropdownOpen} toggle={toggle} hidden={cols.length < 6} >
             <DropdownToggle caret>#</DropdownToggle>
@@ -242,7 +317,7 @@ export const ColumnsDetailsHides = (insideEffect: InsideEffect) => {
                 </DropdownItem>
                 <DropdownItem divider />
                 {
-                   filtCol
+                    filtCol
                         .map(t => {
                             return (<div key={t.dataKey + (render ? "1" : "2")} >
                                 <DropdownItem text style={{ display: "flex", flex: 1 }}>

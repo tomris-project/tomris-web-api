@@ -1,12 +1,17 @@
 import React, { ReactNode, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { BaseControllerValueRef, ControllerClassType, ControllerType, ScreenControllerType } from "../utility/baseRef";
 import { iLayout, View } from "../hocs/withLayout";
-import { Alert } from "reactstrap";
+import { Alert, Card, CardBody, Col } from "reactstrap";
 import { ScreenControllerAction, ScreenRef } from "../screen";
 import { WithScreenController } from "../hocs/withController";
-import { IInputNumberRef } from "../components";
+import { IInputNumberRef } from "../component";
 export interface FormRef extends ScreenControllerAction<iFormProps> {
 
+  getControllers: () => Record<string, ObjectRefs>;
+  setValues: (Data: any) => void
+
+  getHiddenData:()=>any
+  setHiddenData:(data:any)=>void
 }
 
 interface ObjectRefs {
@@ -23,8 +28,13 @@ export interface iFormProps extends iLayout {
   screencontroller?: ScreenRef
   ref?: React.ForwardedRef<FormRef>
 }
-export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardRef<FormRef, iFormProps>((props: iFormProps, ref: React.ForwardedRef<FormRef>) => {
+interface iFormPropsInside extends iFormProps {
+  loadFormEvent: (ref: FormRef) => void
+}
+export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardRef<FormRef, iFormProps>((propsdata: iFormProps, ref: React.ForwardedRef<FormRef>) => {
+  const props = propsdata as iFormPropsInside;
   let [refs] = useState<Record<string, ObjectRefs>>(Object.create({}));
+  let [hiddenData,setHiddenData] = useState<any>(Object.create({}));
   const [open, SetOpen] = useState(false);
   let [alertText, SetAlertText] = useState<string[]>([]);
   const getBaseController = (name?: string): BaseControllerValueRef<any, any> => {
@@ -49,17 +59,37 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
     }
     return Data;
   }
+  const setValues = (Data: any) => {
+    //  let Data: any = {};
+    let keys = Object.keys(Data);
+    for (let index = 0; index < keys.length; index++) {
+      try {
+        let t = keys[index]; 
+        if (refs[t] != null && refs[t].controllerClass == ControllerClassType.Input) {
+
+          refs[t].event.setValue(Data[t]);
+        }
+      } catch (error) {
+
+      }
+    }
+  }
   let [FomRef] = useState<FormRef>({
     register: (props) => {
       let name = props.getProps().id
       refs[name] = { controllerClass: props.controllerClass, event: props, objectName: name, type: props.type };
     },
+    getHiddenData:()=>hiddenData,
+    setHiddenData:(data)=>{ hiddenData=data; setHiddenData(data)},
     type: ScreenControllerType.Form,
+    isController: () => true,
+    getControllers: () => refs as any,
     getProps: () => props,
     getController: (name?) => getBaseController(name),
     getBaseController: getBaseController,
     getNumberInputController: (name?) => getBaseController(name) as IInputNumberRef,
     getValues: getValues,
+    setValues: setValues,
     isValid: () => {
       let status: boolean = true;
       alertText = [];
@@ -93,61 +123,72 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
   });
   const recursive = (props: any) => {
     let childs = React.Children.map(props.children, (child, index) => {
-      let c: any = child as any;
-      let propData = { ...c.props };
-      if (propData.children != null) {
-        propData.children = recursive(propData);
+      if (!React.isValidElement(child)) {
+        return child
       }
-      if (c.type != null && c.type.IsController === true) {
-        propData.controller = FomRef
-        propData.ref = c.ref == null ? useRef<any>() : c.ref
+      try {
+        let c: any = child as any;
+        let propData = { ...c.props };
+        if (c.type != null && c.type.IsController === true) {
+          propData.controller = FomRef
+        }
+        if (propData.children != null) {
+          propData.children = recursive(propData);
+        }
+        if (c.type != null && c.type.IsController === true) {
+          propData.ref = c.ref == null ? useRef<any>() : c.ref
+        }
+
+        c = React.cloneElement(c, propData);
+        return c
+      } catch (error) {
+        console.log(error)
+        return child;
       }
-      c = React.cloneElement(c, propData);
-      return c;
+
     })
 
     return childs;
   }
- // let [childs] = useState(recursive(props));
+  // let [childs] = useState(recursive(props));
   let childs = recursive(props);
   useImperativeHandle(ref, () => (FomRef));
+  props.loadFormEvent?.(FomRef)
   props.screencontroller?.register(FomRef);
   useEffect(() => {
     props.onLoad?.(FomRef);
   })
-  return (<div>
-    <Alert fade toggle={(e) => { SetOpen(false) }} isOpen={open} color="danger">{alertText.map((t, index) => <p key={"key" + index.toString()}>{t}</p>)}</Alert>
-    <View responsive={props.responsive} responsiveSize={props.responsiveSize} spacer={props.spacer}>{childs}</View>
-  </div>);
+  return (
+    <Card>
+      <CardBody>
+        <Col>
+          <Alert fade toggle={(e) => { SetOpen(false) }} isOpen={open} color="danger">{alertText.map((t, index) => <p key={"key" + index.toString()}>{t}</p>)}</Alert>
+          <View responsive={props.responsive} responsiveSize={props.responsiveSize} spacer={props.spacer}>{childs}</View>
+        </Col>
+      </CardBody>
+    </Card>);
 }))
 export interface iForm extends FormRef {
   View: (props: iFormProps, ref?: React.ForwardedRef<FormRef>) => JSX.Element
 }
 export const useForm = () => {
 
-  let ref = useRef<FormRef>(null);
-  const enhanced = WithScreenController(React.forwardRef((props: iFormProps, refs?: React.ForwardedRef<FormRef>) => {
-    if (refs != null)
-      useEffect(() => {
-        ref = refs as any
-      }, [refs])
-    else
-      refs = ref;
-    return <FormView {...props} ref={refs} />
-  }))
-
   let useForm: iForm = Object.create({});
 
-  useEffect(() => {
-    if (ref.current != null) {
-      let keys = Object.keys(ref.current)
+
+  const loadFormEvent = (ref: FormRef) => {
+    if (ref != null) {
+      let keys = Object.keys(ref)
       for (let index = 0; index < keys.length; index++) {
-        (useForm as any)[keys[index]] = (ref.current as any)[keys[index]];
+        (useForm as any)[keys[index]] = (ref as any)[keys[index]];
       }
     }
+  }
 
-  }, [ref]);
-
+  const enhanced = WithScreenController((props: iFormProps) => {
+    const propData = { ...props, loadFormEvent: loadFormEvent };
+    return <FormView {...propData} />
+  })
   useForm.View = enhanced;
   return useState(useForm)[0]
 }

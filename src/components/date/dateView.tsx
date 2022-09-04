@@ -78,6 +78,7 @@ export const DateView = WithController<DateProps, IDateRef>(WithLabel<DateProps,
   // let [notvisible, setNotvisible] = useState(props.notvisible ?? false);
 
   const getFlatpickr = (value: DateTypeValue,parentType:string=""): Date | string | number | (Date | string | number)[] => {
+    
     if (value == null)
       return null;
     if(typeText=="time" && mode=="range" && parentType!="")

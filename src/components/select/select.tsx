@@ -157,20 +157,21 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
     })
   if (isRadio()) {
 
+    let groupName=props.id+""+(props.controller?.getProps().name);
     let style: any = null;
     let div: any = { paddingLeft: 40, flex: 1 };
     if ((propNew.position ?? "vertical") == "horizontal" && props.options?.length < 3) {
       style = { display: "flex", overflow: "auto", whiteSpace: "nowrap" };
       div = { paddingLeft: 40, flex: 1 };
     }
-    const propsRadio: any = _.omit({ ...propNew }, ['options', 'radiogroup', 'isradio', 'defaultValue', 'type', 'onChange', 'isClearable', 'isSearchable', 'isMulti', 'onBlur', 'disabled', 'controller', 'feedBackBorder'])
+    const propsRadio: any = _.omit({ ...propNew }, ['options', 'radiogroup', 'isradio', 'defaultValue', 'type','Label', 'onChange', 'isClearable', 'isSearchable', 'isMulti', 'onBlur', 'disabled', 'controller', 'feedBackBorder'])
     return <>
       <FormGroup check={true} disabled={disabled} style={{ ...style }}>
         {(props.options as any[]).map((row, index) => {
           letRadio[row.value] = useRef(null);
           return (<div key={props.id + "_" + index.toString()} style={div}>
-            <Label check for={row.value}>
-              <Input type="radio" {...propsRadio} id={row.value} innerRef={letRadio[row.value]} name={props.id} title={row.label} value={row.value} onChange={(e) => {
+            <Label check for={props.id + "_" + index.toString()}>
+              <Input type="radio" {...propsRadio} id={props.id + "_" + index.toString()} innerRef={letRadio[row.value]} name={groupName} title={row.label}  onChange={(e) => {
                 thatFnc.setValue(row, "setData"); props.onChange?.(row, { action: "select-option", option: row });
                 try {
                   thatFnc.isValid?.();

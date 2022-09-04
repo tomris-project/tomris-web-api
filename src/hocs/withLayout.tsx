@@ -20,9 +20,12 @@ export interface iLayout extends iLayoutTypeProps {
     children: React.ReactNode | React.ReactNode[] | JSX.Element | JSX.Element[]
 }
 
+export interface iLayoutExtend extends iLayout {
+    classext?:string
+}
 export const withLayout = <T extends iLayout>(WrappedComponent: React.ComponentType<T>) => {
 
-    const enhanced = React.forwardRef(<K extends T & iLayout, P>(props: K, ref: P) => {
+    const enhanced = React.forwardRef(<K extends T & iLayout & iLayoutExtend, P>(props: K, ref: P) => {
         let responsiveSize: ResponsiveType[] = [];
         let count = React.Children.count(props.children);
         if (props.responsiveSize == null || (props.responsiveSize as ResponsiveMainType).col != null) {
@@ -44,7 +47,7 @@ export const withLayout = <T extends iLayout>(WrappedComponent: React.ComponentT
                 if (childJsx != null && childJsx.props != null && childJsx.props.responsive != null) {
                     responsiveSize[index] = childJsx.props.responsive;
                 }
-                element.push(<Col key={`colkey${index}`} {...responsiveSize[index]} //style={{display:"grid",alignItems:"flex-end",width: "fit-content"}}
+                element.push(<Col key={`colkey${index}`} {...responsiveSize[index]} className={props.classext??""}//style={{display:"grid",alignItems:"flex-end",width: "fit-content"}}
                 >{child}</Col>)
                 if (childJsx != null && childJsx.props != null && childJsx.props.spacer === true) {
                     element.push(<Col key={`colkeyspacer${index}`} xl="12" xs="12" xxl="12" lg="12" sm="12" md="12" >{" "}</Col>)
@@ -65,7 +68,7 @@ export const withLayout = <T extends iLayout>(WrappedComponent: React.ComponentT
 }
 
 
-export const View = withLayout((props: iLayout) => {
+export const View = withLayout((props: iLayoutExtend) => {
 
     return (<div>{props.children}</div>)
 })

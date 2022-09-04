@@ -23,12 +23,12 @@ export interface InputNumberProps extends iLabel, iLayoutTypeProps, BaseProps<Nu
   currencyOptions?: string | string[]
   bsSize?: 'lg' | 'sm';
   mode?: "input" | "range"
-  type?:"curreny" | "number";
+  type?: "currency" | "number";
   className?: string
   disabled?: boolean
   id: string;
   //ref?: React.ForwardedRef<IInputNumberRef>;    
-  onChange?: (values: NumberFormatValues, sourceInfo: SourceInfo,getVal:NumberInputType) => void
+  onChange?: (values: NumberFormatValues, sourceInfo: SourceInfo, getVal: NumberInputType) => void
   onBlur?: React.FocusEventHandler<HTMLInputElement>
   onKeyUp?: React.KeyboardEventHandler<HTMLInputElement>
 }
@@ -75,23 +75,29 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
         state = value;
       }
       setState(state);
- 
+
     } else if (props.mode == "range") {
       state = value;
       setState(state);
       innerRef.current.setState(getStateSetData(value.Start));
-      innerRangeRef.current.setState(getStateSetData(value.Stop)); 
-    } else { 
-      state = value; 
+      innerRangeRef.current.setState(getStateSetData(value.Stop));
+    } else {
+      if (_.isNumber(value)) {
+        value = { value: value } as any;
+      }
+
+      state = value;
       setState(state);
-      innerRef.current.setState(getStateSetData(value.value)); 
+      innerRef.current.setState(getStateSetData(value.value));
     }
 
-    state.currency=value.currency;
-    if(currencyOptions.map(t=>t==state.currency).length==0)
-    {
+    state.currency = value.currency;
+    if (currencyOptions.map(t => t == state.currency).length == 0) {
       currencyOptions.push(state.currency);
     }
+
+    if (state.currency != null)
+      selectRef.current.setValue({ label: state.currency, value: state.currency });
 
     return true;
   }
@@ -136,7 +142,7 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
   const propNew: any = _.omit(props, ["defaultValue", "spacer", "onValid", "onChange", "curreny", 'currencyOptions', 'isLabelHidden', 'bsSize', 'mode']);
   useEffect(() => {
     thatFnc.isValid?.();
-  }) 
+  })
   return <>
     <InputGroup style={{ display: "flex", borderColor: valid != true ? "red" : undefined }} key={props.id}>
       <NumberFormat
@@ -152,7 +158,7 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
           try {
             setValue({ value: e.floatValue, currency: state.currency }, "setValue", props.mode == "range" ? "Start" : "value");
           } catch (e) { }
-          props.onChange?.(e, s,thatFnc.getValue());
+          props.onChange?.(e, s, thatFnc.getValue());
         }}
         onBlur={(e: any) => {
           try {
@@ -177,7 +183,7 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
             try {
               setValue({ value: e.floatValue, currency: state.currency }, "setValue", "Stop");
             } catch (e) { }
-            props.onChange?.(e, s,thatFnc.getValue());
+            props.onChange?.(e, s, thatFnc.getValue());
           }}
           onBlur={(e: any) => {
             try {
@@ -191,7 +197,7 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
       )}
       {
         state.currency != null && state.currency.length > 0 && (currencyOptions.length == 1) && (
-          <Label key={props.id+state.currency} disabled size="sm" className="form-control form-control-sm"
+          <Label key={props.id + state.currency} disabled size="sm" className="form-control form-control-sm"
             style={{
               width: "max-content", float: "right", textAlign: "right", flex: "unset",
               borderRightColor: valid == false ? "red" : undefined,
@@ -202,9 +208,10 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
       }
       {
         (currencyOptions.length > 1) && (
-          <Select ref={selectRef} feedBackBorder={"right"} id={props.id + "curreny"} options={currencyOptions.map(t => { return { label: t, value: t } })} defaultValue={{ label: state.currency, value: state.currency }}
+          <Select ref={selectRef} feedBackBorder={"right"} id={props.id + "curreny"} options={currencyOptions.map(t => { return { label: t, value: t } })} defaultValue={{ label: state.currency ?? "", value: state.currency ?? "" }}
             onChange={(e) => {
-              if (e.value != null) thatFnc.setValue({ value: state.value, currency: e.value }, "setValue");
+              state.currency = e.value
+              if (e.value != null) thatFnc.setValue(state, "setValue");
             }
             } />)
       }

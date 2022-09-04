@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { useMemo, useRef } from "react"
 import { Input, Pagination, PaginationItem, PaginationLink } from "reactstrap";
-import { ControllerType } from "../../components";
+import { ControllerType } from "../../component";
 import { Icon, IconName } from "../icon/icon"
 import { IInputNumberRef, InputNumber, NumberInputType } from "../numberinput";
 import { Select } from "../select";

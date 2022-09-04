@@ -1,23 +1,27 @@
-import React, { useMemo, useRef, useState } from "react"
-import { X } from "react-feather"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Row, Col, Table, Card, CardBody, CardHeader, CardFooter, ButtonGroup, InputGroup, Label } from "reactstrap"
 import { BaseProps, ControllerType, ScreenControllerType } from "../../utility/baseRef"
-import { Icon, IconName } from "../icon/icon"
 import { ColumnsGetDataDetails, ColumnsGetPage } from "./datatableGetData"
 import { ColumnsDetails, ColumnsDetailsHides, SingleFilter } from "./datatableHeader"
 import DataTableView, { SortOrder, type TableStyles, createTheme } from "react-data-table-component"
+import { type RenderElement, type PropsApi } from "../../component"
 import _ from "lodash"
 import { BaseDate } from "../../utility/BaseDate"
-import { Checkbox } from "../checkbox"
 import { Button } from "../button"
-import { ScreenControllerAction } from "../../screen"
+import { ScreenRef } from "../../screen"
 
 import { TableColumn } from "react-data-table-component"
+import { iLayoutTypeProps } from "../../hocs/withLayout"
+import { WithScreenController } from "../../hocs/withController"
+import { FormRef, iForm } from "../../form"
+import { AutoRenderForms } from "./datatableAutoRender"
+import { IconName, IconProps } from "../icon/icon"
+import { UIModalRef, useModal } from "../../modal/modal"
 export interface ColumnType {
     dataKey: string
     columnName: string
     columnControllerType?: ControllerType
-    columnControllerProps?: BaseProps<any, any> | any
+    columnControllerProps?: PropsApi
     isHidden?: boolean
     isNotEdit?: boolean
     isNotFilter?: boolean
@@ -28,11 +32,16 @@ export interface ColumnType {
 export interface ColumnTypeinSide extends ColumnType {
     ViewMode?: boolean
     ColIconRef?: { up: any, down: any } | any
-    Sorted?: "up" | "down",
+    Sorted?: "up" | "down"
 }
 
-
-export interface IDataTableProps {
+export interface ActionsProps extends IconProps {
+    label: string
+    onClick: (row: any, that: IDataTableRef, isHeader?: boolean) => void,
+    isColAction?: boolean
+}
+export interface IDataTableProps extends iLayoutTypeProps {
+    name: string
     columns: ColumnType[]
     header?: string | React.ReactNode | JSX.Element
     data?: any[]
@@ -41,14 +50,51 @@ export interface IDataTableProps {
     filterType?: "multiple" | "single"
     filterTypeLabelExcelModeIsShow?: boolean
     selectLoadExp?: (row: any) => boolean
-    eidtMode?: "none" | "excel" | "dialog"
+    eidtMode?: "none" | "excel" | "modal"
     currentPage?: number;
     pageSize?: number[];
     pageSizeDefault?: number;
     maxHeight?: number
     testButtons?: boolean
     selectableRows?: boolean
+    selectableRowsSingle?: boolean
+    selectableRowDisabled?: (row: any) => boolean
+    expandableRowDisabled?: (row: any) => boolean
+    expandableRowsComponent?: (row: any) => any
+    screencontroller?: ScreenRef
+    actions?: ActionsProps[]
+    SearchForm?: {
+        /**
+         * Search Form Search Button
+         */
+        event: (form: FormRef, that: IDataTableRef) => void,
+        /**
+         * Search Form Components
+         */
+        formComponents?: RenderElement,
+        /**
+         * Change Render Props
+         */
+        onChange?: (props: RenderElement, before: RenderElement) => PropsApi
+    }
+    EditForm?: {
+        /**
+         * Edit Form Search Button
+         */
+        event?: (form: FormRef, that: IDataTableRef, data: any) => any,
+        /**
+         * Edit Form Components
+         */
+        formComponents?: RenderElement,
+        /**
+         * Change Render Props
+         */
+        onChange?: (props: RenderElement, before: RenderElement) => PropsApi
+    }
+}
 
+export interface UIDataTableRef extends IDataTableRef {
+    View: (props: IDataTableProps, refs?: React.ForwardedRef<IDataTableRef>) => JSX.Element
 }
 interface StateFull {
     cols: ColumnTypeinSide[];
@@ -64,6 +110,18 @@ interface StateFull {
         selectPageSize: number
     }
 }
+export interface DataTableValues {
+    Selected: any[]
+    BaseData: any[]
+    SearchForm: any
+    Value: {
+        Insert: any[],
+        Delete: any[],
+        Update: any[],
+        ViewData: any[],
+        ExpandData: any[]
+    }
+}
 export interface InsideEffect {
     RederView: () => void
     state: StateFull,
@@ -74,30 +132,25 @@ export interface InsideEffect {
     getProps: () => IDataTableProps,
     getBaseData: () => any[],
     getCopyClearExport: (data: any[]) => any[],
-    getValues: () => {
-        Selected: any[],
-        BaseData: any[],
-        Value: {
-            Insert: any[],
-            Delete: any[],
-            Update: any[],
-            ViewData: any[]
-        }
-    },
+    getValues: () => DataTableValues,
     Add: (newRow: any, addIndex?: number) => void
     EditView: (Row: any, col: ColumnType, val: any) => void
     EditRow: (Row: any, Process: ProcessType) => any
     GetIndexs: (exp: (t: any) => boolean) => number[]
     UpdateCell: (RowIndex: number, dataKey: string, value: any, isRender?: boolean) => void
     UpdateCellExp: (exp: (t: any) => boolean, dataKey: string, value: any) => void
-    RowCell: (RowIndex: number, row: any, isRender?: boolean) => void
-    RowCellExp: (exp: (t: any) => boolean, row: any) => void
+    RowUpdate: (RowIndex: number, row: any, isRender?: boolean) => void
+    RowUpdateExp: (exp: (t: any) => boolean, row: any) => void
     Selected: (RowIndex: number, selectVal: boolean, isRender?: boolean) => void
     SelectedExp: (exp: (t: any) => boolean, selectVal: boolean) => void
     Delete: (RowIndex: number, isRender?: boolean) => void
     DeleteExp: (exp: (t: any) => boolean) => void
     getCol: (dataKey: string) => ColumnTypeinSide,
     DataTableViewSelectUser: (selected: { allSelected: boolean, selectedCount: number, selectedRows: any[] }) => void
+    that: () => IDataTableRef,
+    EditInsertModal: (row: any, type: ProcessType) => void
+    editModal: UIModalRef
+
 }
 export enum ProcessType {
     None = 1,
@@ -105,16 +158,21 @@ export enum ProcessType {
     Update = 3,
     Delete = 4,
 }
-export interface IDataTableRef extends ScreenControllerAction<IDataTableProps> {
+export interface IDataTableRef //extends ScreenControllerAction<IDataTableProps> 
+{
     Add: (newRow: any, addIndex?: number) => void
     UpdateCell: (RowIndex: number, dataKey: string, value: any, isRender?: boolean) => void
     UpdateCellExp: (exp: (t: any) => boolean, dataKey: string, value: any, isRender?: boolean) => void
-    RowCell: (RowIndex: number, row: any, isRender?: boolean) => void
-    RowCellExp: (exp: (t: any) => boolean, row: any) => void
+    RowUpdate: (RowIndex: number, row: any, isRender?: boolean) => void
+    RowUpdateExp: (exp: (t: any) => boolean, row: any) => void
     Selected: (RowIndex: number, selectVal: boolean, isRender?: boolean) => void
     SelectedExp: (exp: (t: any) => boolean, selectVal: boolean) => void
     Delete: (RowIndex: number, isRender?: boolean) => void
     DeleteExp: (exp: (t: any) => boolean) => void
+    getProps: () => IDataTableProps
+    getValues: () => DataTableValues
+    getSearchForm: () => FormRef
+    type: ScreenControllerType
 
 }
 
@@ -143,7 +201,10 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 if (props.eidtMode != "excel") {
                     if (_.isNumber(val)) {
                         return val;
-                    } else {
+                    } else if (c.columnControllerProps.type == "currency") {
+                        return val
+                    }
+                    else {
                         return val.value;
                     }
                 }
@@ -166,6 +227,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
             if (t.DATATABLE == null)
                 t.DATATABLE = {
                     isSelected: false,
+                    isExpand: false,
                     Process: ProcessType.None
                 }
             if (load == false) {
@@ -176,6 +238,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         return createData;
     }
 
+    const editModal = useModal();
     let [FullStateData] = useState<StateFull>({
         cols: (props.columns.map((t: ColumnTypeinSide) => { t.ViewMode = useState(false)[0]; t.ColIconRef = { up: useRef(null), down: useRef(null) }; return t; })),
         data: createData(props.data),
@@ -185,9 +248,6 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         editExcellRef: Object.create({}),
         page: { currentPage: 1, selectPageSize: 20 }
     })
-
-
-
     const handleClearRows = () => {
         load = true;
         SetLoad(load);
@@ -198,6 +258,9 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         setRenderCols(renderCols);
     }
     const insideEffect: InsideEffect = {
+        editModal: editModal,
+        EditInsertModal: null,
+        that: () => { return thatFnc },
         RederView: RederView,
         state: FullStateData,
         editExcellRef: FullStateData.editExcellRef,
@@ -234,15 +297,16 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
             return newData;
         },
         getValues: () => {
-            debugger
             let SendData = {
                 Selected: insideEffect.getCopyClearExport(FullStateData.data.filter(t => t.DATATABLE.isSelected == true)),
                 BaseData: props.data ?? [],
+                SearchForm: thatFnc.getSearchForm?.()?.getValues?.(),
                 Value: {
                     Insert: insideEffect.getCopyClearExport(FullStateData.data.filter(t => t.DATATABLE.Process == ProcessType.Insert)),
                     Delete: insideEffect.getCopyClearExport(FullStateData.deleteData),
                     Update: insideEffect.getCopyClearExport(FullStateData.data.filter(t => t.DATATABLE.Process == ProcessType.Update)),
-                    ViewData: insideEffect.getCopyClearExport(insideEffect.ViewData)
+                    ViewData: insideEffect.getCopyClearExport(insideEffect.ViewData),
+                    ExpandData: insideEffect.getCopyClearExport(FullStateData.data.filter(t => t.DATATABLE.isExpand == true))
                 }
             }
             return SendData;
@@ -319,7 +383,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
             })
             insideEffect.RederView();
         },
-        RowCell: (RowIndex: number, row: any, isRender: boolean = true) => {
+        RowUpdate: (RowIndex: number, row: any, isRender: boolean = true) => {
             if (FullStateData.data.length < RowIndex || RowIndex < 0 || FullStateData.data.length == 0) {
                 return false;
             }
@@ -333,9 +397,9 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 }
             }
         },
-        RowCellExp: (exp: (t: any) => boolean, row: any) => {
+        RowUpdateExp: (exp: (t: any) => boolean, row: any) => {
             insideEffect.GetIndexs(exp).map(t => {
-                insideEffect.RowCell(t, row, false);
+                insideEffect.RowUpdate(t, row, false);
             })
             insideEffect.RederView();
         },
@@ -385,12 +449,6 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         }
     }
 
-    const columns = ColumnsDetails(insideEffect);
-    const columnsHides = ColumnsDetailsHides(insideEffect);
-    const dataRow = ColumnsGetDataDetails(insideEffect);
-    const paging = ColumnsGetPage(props, insideEffect);
-
-    const singleFilterMemo = SingleFilter(insideEffect);
 
     let height = props.maxHeight ?? 400;
 
@@ -401,16 +459,31 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         Add: insideEffect.Add,
         UpdateCell: insideEffect.UpdateCell,
         UpdateCellExp: insideEffect.UpdateCellExp,
-        RowCell: insideEffect.RowCell,
-        RowCellExp: insideEffect.RowCellExp,
+        RowUpdate: insideEffect.RowUpdate,
+        RowUpdateExp: insideEffect.RowUpdateExp,
         Delete: insideEffect.Delete,
         DeleteExp: insideEffect.DeleteExp,
         Selected: insideEffect.Selected,
         SelectedExp: insideEffect.SelectedExp,
+        getSearchForm: null
 
     }
 
+
+    const columns = ColumnsDetails(insideEffect);
+    const columnsHides = ColumnsDetailsHides(insideEffect);
+    const dataRow = ColumnsGetDataDetails(insideEffect);
+    const paging = ColumnsGetPage(props, insideEffect);
+    const autoRenderForms = AutoRenderForms(insideEffect, thatFnc);
+    thatFnc.getSearchForm = () => {
+        return autoRenderForms.SearchForm?.getForm()
+    }
+
+    const singleFilterMemo = SingleFilter(insideEffect);
+
     React.useImperativeHandle(ref, () => (thatFnc));
+
+    props.screencontroller?.register(thatFnc);
 
     const customStyles = {
         rows: {
@@ -448,9 +521,6 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         },
 
     };
-
-
-
     load = true;
     createTheme('solarized', {
         text: {
@@ -488,139 +558,187 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         },
 
     }, 'default');
-    return (<Card >
-        <CardHeader>
-            <Row hidden={(props.testButtons ?? false) !== true}>
-                <Col>Events {' - '}
-                    <ButtonGroup>
-                        <Button isLabelHidden color="info" onClick={(e) => { console.log(FullStateData.data); }} label="GetRawData" id="GetRawData" />
-                        <Button isLabelHidden color="info" onClick={(e) => { FullStateData.cols[0].isHidden = true; insideEffect.RederView(); }} label="GetRawData" id="GetRawData" />
-                        <Button isLabelHidden color="info" onClick={(e) => { console.log(thatFnc.getValues()); console.log(JSON.stringify(thatFnc.getValues())); }} label="GetData" id="GetData" />
-                        <Button color="danger" onClick={(e) => {
-                            let sayi: any = prompt("SAYI Giriniz", "0");
-                            sayi = _.toNumber(sayi);
-                            thatFnc.Add({ CheckBox: false, "name": "SELAM 1", "phone": "00000000", "email": "pharetra.nam@protonmail.edu", "region": "Hatay", "country": "TURKIYE", "text": "sollicitudin adipiscing ligula. Aenean gravida nunc sed pede. Cum sociis", "numberrange": 3, "currency": { value: 5462.04, currency: "USD" }, "alphanumeric": "VOB92CFL7GL", "postalZip": "65152-271", "date": "2022.08.30 8:30:11", "time": "07:25:01" }, sayi)
-                        }} label="AddInsert" id="AddInsert" />
+    return (
+        <>
+            <editModal.View autoClear={true} backdrop size="xl" header={props.header} />
+            <Card >
+                {(autoRenderForms.SearchForm != null) && (
+                    <div style={{ marginBottom: 20 }}>
+                        {<autoRenderForms.SearchForm.View />}
+                    </div>
+                )}
+                <CardHeader>
+                    <Row hidden={(props.testButtons ?? false) !== true}>
+                        <Col>Events {' - '}
+                            <ButtonGroup>
+                                <Button isLabelHidden color="info" onClick={(e) => { console.log(FullStateData.data); }} label="GetRawData" id="GetRawData" />
+                                <Button isLabelHidden color="info" onClick={(e) => { FullStateData.cols[0].isHidden = true; insideEffect.RederView(); }} label="GetRawData" id="GetRawData" />
+                                <Button isLabelHidden color="info" onClick={(e) => { console.log(thatFnc.getValues()); console.log(JSON.stringify(thatFnc.getValues())); }} label="GetData" id="GetData" />
+                                <Button color="danger" onClick={(e) => {
+                                    let sayi: any = prompt("SAYI Giriniz", "0");
+                                    sayi = _.toNumber(sayi);
+                                    thatFnc.Add({ CheckBox: false, "name": "SELAM 1", "phone": "00000000", "email": "pharetra.nam@protonmail.edu", "region": "Hatay", "country": "TURKIYE", "text": "sollicitudin adipiscing ligula. Aenean gravida nunc sed pede. Cum sociis", "numberrange": 3, "currency": { value: 5462.04, currency: "USD" }, "alphanumeric": "VOB92CFL7GL", "postalZip": "65152-271", "date": "2022.08.30 8:30:11", "time": "07:25:01" }, sayi)
+                                }} label="AddInsert" id="AddInsert" />
 
-                        <Button isLabelHidden color="danger" onClick={(e) => {
-                            thatFnc.UpdateCell(14, "numberrange", 12, false);
-                            thatFnc.UpdateCell(4, "currency", { value: 12, currency: "EUR" }, false);
-                            thatFnc.UpdateCell(4, "email", "SALTUK 1", false);
-                            thatFnc.UpdateCell(1, "CheckBox", true, false);
-                            thatFnc.UpdateCell(2, "name", "SALTUK 1", false);
-                            thatFnc.UpdateCell(3, "phone", "00000000", true);
-                            thatFnc.UpdateCell(0, "date", "2023.08.30 0:12:11", true);
-                            thatFnc.UpdateCell(0, "time", "15:20", true);
-                        }} label="Update Cell Index" id="UpdateInsert" />
-                        <Button isLabelHidden color="danger" onClick={(e) => {
-                            thatFnc.UpdateCellExp((t => t.GUID < 5), "numberrange", 12, false);
-                            thatFnc.UpdateCellExp((t => t.GUID == 5), "currency", { value: 12, currency: "EUR" }, false);
-                            thatFnc.UpdateCellExp((t => t.GUID == 5), "email", "SALTUK 1", false);
-                            thatFnc.UpdateCellExp((t => t.GUID > 5), "CheckBox", true, false);
-                            thatFnc.UpdateCellExp((t => t.GUID == 6), "name", "SALTUK 1", false);
-                            thatFnc.UpdateCellExp((t => t.GUID == 7), "phone", "00000000", true);
-                            thatFnc.UpdateCellExp((t => t.GUID == 8), "date", "2023.08.30 0:12:11", true);
-                            thatFnc.UpdateCellExp((t => t.GUID == 9), "time", "15:20", true);
-                        }} label="Update Cell Exp" id="UpdateInsert" />
+                                <Button isLabelHidden color="danger" onClick={(e) => {
+                                    thatFnc.UpdateCell(14, "numberrange", 12, false);
+                                    thatFnc.UpdateCell(4, "currency", { value: 12, currency: "EUR" }, false);
+                                    thatFnc.UpdateCell(4, "email", "SALTUK 1", false);
+                                    thatFnc.UpdateCell(1, "CheckBox", true, false);
+                                    thatFnc.UpdateCell(2, "name", "SALTUK 1", false);
+                                    thatFnc.UpdateCell(3, "phone", "00000000", true);
+                                    thatFnc.UpdateCell(0, "date", "2023.08.30 0:12:11", true);
+                                    thatFnc.UpdateCell(0, "time", "15:20", true);
+                                }} label="Update Cell Index" id="UpdateInsert" />
+                                <Button isLabelHidden color="danger" onClick={(e) => {
+                                    thatFnc.UpdateCellExp((t => t.GUID < 5), "numberrange", 12, false);
+                                    thatFnc.UpdateCellExp((t => t.GUID == 5), "currency", { value: 12, currency: "EUR" }, false);
+                                    thatFnc.UpdateCellExp((t => t.GUID == 5), "email", "SALTUK 1", false);
+                                    thatFnc.UpdateCellExp((t => t.GUID > 5), "CheckBox", true, false);
+                                    thatFnc.UpdateCellExp((t => t.GUID == 6), "name", "SALTUK 1", false);
+                                    thatFnc.UpdateCellExp((t => t.GUID == 7), "phone", "00000000", true);
+                                    thatFnc.UpdateCellExp((t => t.GUID == 8), "date", "2023.08.30 0:12:11", true);
+                                    thatFnc.UpdateCellExp((t => t.GUID == 9), "time", "15:20", true);
+                                }} label="Update Cell Exp" id="UpdateInsert" />
 
-                        <Button isLabelHidden color="primary" onClick={(e) => {
-                            thatFnc.RowCell(0, {
-                                CheckBox: true,
-                                "name": "Aspen Hewitt",
-                                "phone": "1-948-676-0204",
-                                "email": "sem.nulla@icloud.couk",
-                                "region": "Şanlıurfa",
-                                "country": "Sweden",
-                                "text": "Quisque fringilla euismod enim. Etiam gravida molestie arcu. Sed eu",
-                                "numberrange": 1,
-                                "currency": 57593.38,
-                                "alphanumeric": "LVA72IJL5SI",
-                                "postalZip": "2328",
-                                "date": "2022.04.23 5:27:33",
-                                "time": "9:03:17"
-                            }, true);
-                        }} label="Update Row Index" id="UpdateInsert" />
-                        <Button isLabelHidden color="primary" onClick={(e) => {
+                                <Button isLabelHidden color="primary" onClick={(e) => {
+                                    thatFnc.RowUpdate(0, {
+                                        CheckBox: true,
+                                        "name": "Aspen Hewitt",
+                                        "phone": "1-948-676-0204",
+                                        "email": "sem.nulla@icloud.couk",
+                                        "region": "Şanlıurfa",
+                                        "country": "Sweden",
+                                        "text": "Quisque fringilla euismod enim. Etiam gravida molestie arcu. Sed eu",
+                                        "numberrange": 1,
+                                        "currency": 57593.38,
+                                        "alphanumeric": "LVA72IJL5SI",
+                                        "postalZip": "2328",
+                                        "date": "2022.04.23 5:27:33",
+                                        "time": "9:03:17"
+                                    }, true);
+                                }} label="Update Row Index" id="UpdateInsert" />
+                                <Button isLabelHidden color="primary" onClick={(e) => {
 
-                            thatFnc.RowCellExp((t => t.GUID < 5), {
-                                CheckBox: true,
-                                "name": "Aspen Hewitt",
-                                "phone": "1-948-676-0204",
-                                "email": "sem.nulla@icloud.couk",
-                                "region": "Şanlıurfa",
-                                "country": "Sweden",
-                                "text": "Quisque fringilla euismod enim. Etiam gravida molestie arcu. Sed eu",
-                                "numberrange": 1,
-                                "currency": 57593.38,
-                                "alphanumeric": "LVA72IJL5SI",
-                                "postalZip": "2328",
-                                "date": "2022.04.23 5:27:33",
-                                "time": "9:03:17"
-                            });
-                        }} label="Update Row Exp" id="UpdateInsert" />
+                                    thatFnc.RowUpdateExp((t => t.GUID < 5), {
+                                        CheckBox: true,
+                                        "name": "Aspen Hewitt",
+                                        "phone": "1-948-676-0204",
+                                        "email": "sem.nulla@icloud.couk",
+                                        "region": "Şanlıurfa",
+                                        "country": "Sweden",
+                                        "text": "Quisque fringilla euismod enim. Etiam gravida molestie arcu. Sed eu",
+                                        "numberrange": 1,
+                                        "currency": 57593.38,
+                                        "alphanumeric": "LVA72IJL5SI",
+                                        "postalZip": "2328",
+                                        "date": "2022.04.23 5:27:33",
+                                        "time": "9:03:17"
+                                    });
+                                }} label="Update Row Exp" id="UpdateInsert" />
 
-                        <Button isLabelHidden color="secondary" onClick={(e) => {
-                            thatFnc.Delete(0, true);
-                        }} label="Delete Row Index" id="UpdateInsert" />
-                        <Button isLabelHidden color="secondary" onClick={(e) => {
+                                <Button isLabelHidden color="secondary" onClick={(e) => {
+                                    thatFnc.Delete(0, true);
+                                }} label="Delete Row Index" id="UpdateInsert" />
+                                <Button isLabelHidden color="secondary" onClick={(e) => {
 
-                            thatFnc.DeleteExp((t => t.GUID > 5));
-                        }} label="Delete Row Exp" id="UpdateInsert" />
+                                    thatFnc.DeleteExp((t => t.GUID > 5));
+                                }} label="Delete Row Exp" id="UpdateInsert" />
 
-                        <Button isLabelHidden color="success" onClick={(e) => {
-                            thatFnc.Selected(0, true);
-                        }} label="Select Row Index" id="UpdateInsert" />
-                        <Button isLabelHidden color="success" onClick={(e) => {
-                            thatFnc.SelectedExp((t => t.GUID > 5), true);
-                        }} label="Select Row Exp" id="UpdateInsert" />
-                    </ButtonGroup>
-                </Col>
-            </Row>
-            <Row>
-                <Col><Label>{props.header}</Label></Col>
-                <Col xl={2} md={3} xs={12} xxl={2} lg={2}> <InputGroup style={{ float: "right", display: singleFilterMemo == null ? "block" : "flex", textAlign: "right" }}>
-                    {columnsHides}  {singleFilterMemo}</InputGroup> </Col>
-            </Row>
-        </CardHeader>
-        <div >
-            <Row>
-                <Col xl={12} sm={12} xs={12} xxl={12} md={12} lg={12}>
-                    <DataTableView
-                        keyField={"GUID"}
-                        theme="solarized"
-                        customStyles={customStyles}
-                        data={dataRow}
-                        pagination={false}
-                        dense
-                        striped
-                        persistTableHead
-                        selectableRows={props.selectableRows === true}
-                        clearSelectedRows={toggledClearRows}
-                        onSelectedRowsChange={insideEffect.DataTableViewSelectUser}
-                        noDataComponent={(<div>-</div>)}
-                        highlightOnHover
-                        selectableRowSelected={(e) => { return e.DATATABLE.isSelected == true }}
-                        pointerOnHover
-                        responsive
-                        paginationResetDefaultPage={renderCols}
-                        columns={columns}
-                        onSort={(e, sort: SortOrder) => {
-                            FullStateData.cols.filter(t => t.dataKey != e.id).map(t => { t.Sorted = null });
-                            FullStateData.cols.filter(t => t.dataKey == e.id).map(t => { t.Sorted = ((sort == "asc") ? "up" : "down"); });
-                            setRenderCols(!renderCols);
-                        }}
-                        fixedHeader={height > 0}
-                        fixedHeaderScrollHeight={height != null ? `${height}px` : undefined}
-                    />
-                </Col>
-            </Row>
-        </div>
-        <CardFooter>
-            <Col xl={12} sm={12} xs={12} xxl={12} md={12} lg={12}>
-                <div style={{ flex: 1, float: "right" }}>
-                    {paging.view}
+                                <Button isLabelHidden color="success" onClick={(e) => {
+                                    thatFnc.Selected(0, true);
+                                }} label="Select Row Index" id="UpdateInsert" />
+                                <Button isLabelHidden color="success" onClick={(e) => {
+                                    thatFnc.SelectedExp((t => t.GUID > 5), true);
+                                }} label="Select Row Exp" id="UpdateInsert" />
+                            </ButtonGroup>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col><Label>{props.header}</Label></Col>
+                        <Col xl={2} md={3} xs={12} xxl={2} lg={2}> <InputGroup style={{ float: "right", display: singleFilterMemo == null ? "block" : "flex", textAlign: "right" }}>
+                            {props.eidtMode == "modal" && (<Button isLabelHidden id="Add" style={{ height: 38 }} label={null} icon={{ iconName: IconName.Plus }} onClick={() => { insideEffect.EditInsertModal({}, ProcessType.Insert) }} />)}{columnsHides}{singleFilterMemo}</InputGroup> </Col>
+                    </Row>
+                </CardHeader>
+                <div >
+
+                    <Row>
+                        <Col xl={12} sm={12} xs={12} xxl={12} md={12} lg={12}>
+                            <DataTableView
+                                keyField={"GUID"}
+                                theme="solarized"
+                                customStyles={customStyles}
+                                data={dataRow}
+                                pagination={false}
+                                dense
+                                striped
+                                persistTableHead
+                                selectableRowsSingle={props.selectableRowsSingle}
+                                selectableRowDisabled={props.selectableRowDisabled}
+                                selectableRows={props.selectableRows === true}
+                                expandableRows={props.expandableRowsComponent == null ? false : true}
+                                expandableRowsComponent={(e) => {
+                                    return props.expandableRowsComponent?.(e);
+                                }}
+                                expandableRowExpanded={(e) => { return e.DATATABLE.isExpand == true }}
+                                expandableRowDisabled={props.selectableRowDisabled}
+                                onRowExpandToggled={(e, rowData) => {
+                                    rowData.DATATABLE.isExpand = e;
+                                }}
+                                clearSelectedRows={toggledClearRows}
+                                onSelectedRowsChange={insideEffect.DataTableViewSelectUser}
+                                noDataComponent={(<div>-</div>)}
+                                highlightOnHover
+                                selectableRowSelected={(e) => { return e.DATATABLE.isSelected == true }}
+                                pointerOnHover
+                                responsive
+                                paginationResetDefaultPage={renderCols}
+                                columns={columns}
+                                onSort={(e, sort: SortOrder) => {
+                                    FullStateData.cols.filter(t => t.dataKey != e.id).map(t => { t.Sorted = null });
+                                    FullStateData.cols.filter(t => t.dataKey == e.id).map(t => { t.Sorted = ((sort == "asc") ? "up" : "down"); });
+                                    setRenderCols(!renderCols);
+                                }}
+                                fixedHeader={height > 0}
+                                fixedHeaderScrollHeight={height != null ? `${height}px` : undefined}
+                            />
+                        </Col>
+                    </Row>
                 </div>
-            </Col>
-        </CardFooter>
-    </Card>)
+                <CardFooter>
+                    <Col xl={12} sm={12} xs={12} xxl={12} md={12} lg={12}>
+                        <div style={{ flex: 1, float: "right" }}>
+                            {paging.view}
+                        </div>
+                    </Col>
+                </CardFooter>
+            </Card>
+        </>)
 })
+
+
+
+export const useDataTable = () => {
+    let ref = useRef<IDataTableRef>(null);
+    const enhanced = WithScreenController(React.forwardRef((props: IDataTableProps, refs?: React.ForwardedRef<IDataTableRef>) => {
+        if (refs != null)
+            useEffect(() => {
+                ref = refs as any
+            }, [refs])
+        else
+            refs = ref;
+        return <DataTable {...props} ref={refs} />
+    }))
+    let methods: UIDataTableRef = Object.create({});
+    useEffect(() => {
+        if (ref.current != null) {
+            let keys = Object.keys(ref.current)
+            for (let index = 0; index < keys.length; index++) {
+                (methods as any)[keys[index]] = (ref.current as any)[keys[index]];
+            }
+        }
+
+    }, [ref]);
+    methods.View = enhanced;
+    return useState(methods)[0]
+}

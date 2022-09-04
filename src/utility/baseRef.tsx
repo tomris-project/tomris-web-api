@@ -1,3 +1,4 @@
+import { ITabMainRef } from "../component"
 import { FormRef } from "../form"
 
 
@@ -32,6 +33,8 @@ export interface ValidResponse {
  */
 export interface BaseProps<T, P> {
     id: string
+    tabid?:string
+    intab?:ITabMainRef
     controller?: FormRef
     notvisible?: boolean
     blocking?: boolean    

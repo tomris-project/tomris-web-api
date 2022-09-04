@@ -7,13 +7,14 @@ import { Icon, IconProps } from "../icon/icon";
 import React, { useImperativeHandle, useState } from "react";
 import { BaseControllerActionRef, BaseProps, ControllerClassType, ControllerType } from "../../utility/baseRef";
 
-
+export type ButtonCollor = "primary" | "secondary" | "success" | "info" | "warning" | "danger" | "link";
+ 
 export interface ButtonProps extends Omit<iLabel, 'id'>, iLayoutTypeProps, Omit<BaseProps<IButtonRef, ButtonProps>, ''>, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'id'> {
   label?: string
   outline?: boolean;
   active?: boolean;
   block?: boolean;
-  color?: "primary" | "secondary" | "success" | "info" | "warning" | "danger" | "link";
+  color?: ButtonCollor;
   tag?: React.ElementType;
   innerRef?: React.Ref<HTMLButtonElement>;
   close?: boolean;
@@ -53,9 +54,9 @@ export const Button = WithLabel<ButtonProps, IButtonRef>(React.forwardRef((props
   useImperativeHandle(ref, () => (thatFnc));
 
 
-  const propsNew = _.omit(props, ["setHiddenLabel", "spacer", "responsive","isLabelHidden"])
+  const propsNew = _.omit(props, ["setHiddenLabel", "spacer", "responsive","isLabelHidden","iconPosition"])
   return (
-    <ButtonBASE hidden={hidden} {...propsNew} color={props.color ?? "primary"} size={"sm"} style={{ alignContent: "flex-end", alignItems: "flex-end", verticalAlign: "bottom", alignTracks: "end", alignSelf: "end" }}>
+    <ButtonBASE hidden={hidden} {...propsNew} color={props.color ?? "primary"} size={"sm"} style={{ alignContent: "flex-end", alignItems: "flex-end", verticalAlign: "bottom", alignTracks: "end", alignSelf: "end",...propsNew.style }}>
       {(props.icon != null && (props.iconPosition ?? "left") == "left" && (<Icon {...props.icon} />))}
       {" "}{props.label}{" "}
       {(props.icon != null && props.iconPosition == "right" && (<Icon {...props.icon} />))}
