@@ -12,26 +12,27 @@ import { BaseControllerValueRef, BaseProps, ControllerClassType, ControllerType,
 import { Validator } from "../../utility/validator";
 import { WithController } from "../../hocs/withController";
 import { Input } from "reactstrap";
-
-
 export interface Options {
   value: any
   label: string
   data?: Options[] | any
 }
 
+export type OptionsData = OptionsOrGroups<Options, GroupBase<Options>>
+
 export interface SelectProps extends iLabel, iLayoutTypeProps, BaseProps<Options, ISelectRef> {
-  id:string
+  id: string
   defaultValue?: Options
   disabled?: boolean
   isClearable?: boolean
   isSearchable?: boolean
   isMulti?: boolean
-  options?: OptionsOrGroups<Options, GroupBase<Options>>
+  options?: OptionsData
   onChange?: (newValue: Options, actionMeta: ActionMeta<Options>) => void
   onBlur?: React.FocusEventHandler<HTMLInputElement>
   feedBackBorder?: "right" | "both" | "left"
   noBorder?: boolean
+  returntype?: "object" | "value" | "data"
 }
 export interface SelectAndRadioProps extends SelectProps {
   radiogroup?: string
@@ -55,17 +56,24 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
   // let [notvisible, setNotvisible] = useState(props.notvisible ?? false);
 
   let [letRadio] = useState<Record<any, any>>(Object.create({}));
-  const isRadio = () => props.isradio == true && props.options.length < 6;
+  const isRadio = () => props.isradio == true && (props.options==null ||  props.options?.length < 6);
   const setValue = (value: Options, key: string) => {
     try {
-
       if (isRadio()) {
         if (letRadio[value.value] != null) {
           letRadio[value.value].current.checked = true;
         }
 
-      } else {
+      } else { 
         if (key !== "setData") {
+          if(props.returntype=="value")
+          {
+           let x:any[]=  props.options.filter((t : any)=>t.value==value)
+           if(x.length>0)
+           {
+            value=x[0];
+           }
+          }
           if (value == null) {
             innerRef.current.clearValue();
           } else {
@@ -82,7 +90,11 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
   }
   let innerRef = useRef<any>(null);
   const thatFnc: ISelectRef = {
-    getValue: () => stateValue,
+    getValue: () => {
+      if (props.returntype == "value" && stateValue != null) { return stateValue.value }
+      if (props.returntype == "data" && stateValue != null) { return stateValue.data }
+      return stateValue
+    },
     setValue: setValue,
     clear: () => setValue(null, null),
     isHide: () => hidden,
@@ -115,32 +127,32 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
   const propNew = _.omit(props, ["setHiddenLabel", "spacer", "onValid"]);
   const customStyles = {
     control: (provided: any, state: any) => ({
-      ...provided, 
+      ...provided,
       borderColor: valid == false && (props.feedBackBorder !== "right") ? "red" : provided.borderColor,//'#9e9e9e' ,
       borderRightColor: valid == false && props.feedBackBorder == "right" ? "red" : provided.borderColor,
       borderTopColor: valid == false && props.feedBackBorder == "right" ? "red" : provided.borderColor,
       borderBottomColor: valid == false && props.feedBackBorder == "right" ? "red" : provided.borderColor,
       borderTopLeftRadius: (props.feedBackBorder == "right" || props.feedBackBorder == "both") ? 0 : provided.borderTopLeftRadius,
-      borderBottomLeftRadius: (props.feedBackBorder == "right"|| props.feedBackBorder == "both") ? 0 : provided.borderBottomLeftRadius,
+      borderBottomLeftRadius: (props.feedBackBorder == "right" || props.feedBackBorder == "both") ? 0 : provided.borderBottomLeftRadius,
       borderTopRightRadius: (props.feedBackBorder == "left" || props.feedBackBorder == "both") ? 0 : provided.borderTopLeftRadius,
-      borderBottomRightRadius: (props.feedBackBorder == "left"|| props.feedBackBorder == "both") ? 0 : provided.borderBottomLeftRadius,
+      borderBottomRightRadius: (props.feedBackBorder == "left" || props.feedBackBorder == "both") ? 0 : provided.borderBottomLeftRadius,
       minHeight: '30px',
       height: '31px',
       boxShadow: state.isFocused ? null : null,
-      borderWidth:(props.noBorder==true)?0:provided.borderWidth
-      
+      borderWidth: (props.noBorder == true) ? 0 : provided.borderWidth
+
     }),
 
     valueContainer: (provided: any, state: any) => ({
       ...provided,
-      height: '30px',
+      height: '30px', 
       padding: '0 6px'
     }),
 
     input: (provided: any, state: any) => ({
       ...provided,
       margin: '0px',
-      borderWidth:(props.noBorder==true)?0:provided.borderWidth
+      borderWidth: (props.noBorder == true) ? 0 : provided.borderWidth
     }),
     indicatorSeparator: (state: any) => ({
       display: 'none',
@@ -149,29 +161,34 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
       ...provided,
       height: '30px',
     }),
+    menu:(base:any)=> ({...base,zIndex:4})
   };
-  if (stateValue != null)
-    useEffect(() => {
-      thatFnc.setValue(stateValue);
-      thatFnc.isValid?.();
-    })
+  try { 
+      useEffect(() => {
+        thatFnc.setValue(stateValue);
+        thatFnc.isValid?.();
+      }, [stateValue])
+  } catch (error) {
+
+  }
+
   if (isRadio()) {
 
-    let groupName=props.id+""+(props.controller?.getProps().name);
+    let groupName = props.id + "" + (props.controller?.getProps().name);
     let style: any = null;
     let div: any = { paddingLeft: 40, flex: 1 };
     if ((propNew.position ?? "vertical") == "horizontal" && props.options?.length < 3) {
       style = { display: "flex", overflow: "auto", whiteSpace: "nowrap" };
       div = { paddingLeft: 40, flex: 1 };
     }
-    const propsRadio: any = _.omit({ ...propNew }, ['options', 'radiogroup', 'isradio', 'defaultValue', 'type','Label', 'onChange', 'isClearable', 'isSearchable', 'isMulti', 'onBlur', 'disabled', 'controller', 'feedBackBorder'])
+    const propsRadio: any = _.omit({ ...propNew }, ['options', 'radiogroup', 'isradio', 'defaultValue', 'type', 'Label', 'onChange', 'isClearable', 'isSearchable', 'isMulti', 'onBlur', 'disabled', 'controller', 'feedBackBorder'])
     return <>
       <FormGroup check={true} disabled={disabled} style={{ ...style }}>
-        {(props.options as any[]).map((row, index) => {
+        {(props.options??[] as any[]).map((row, index) => {
           letRadio[row.value] = useRef(null);
           return (<div key={props.id + "_" + index.toString()} style={div}>
             <Label check for={props.id + "_" + index.toString()}>
-              <Input type="radio" {...propsRadio} id={props.id + "_" + index.toString()} innerRef={letRadio[row.value]} name={groupName} title={row.label}  onChange={(e) => {
+              <Input type="radio" {...propsRadio} id={props.id + "_" + index.toString()} innerRef={letRadio[row.value]} name={groupName} title={row.label} onChange={(e) => {
                 thatFnc.setValue(row, "setData"); props.onChange?.(row, { action: "select-option", option: row });
                 try {
                   thatFnc.isValid?.();
@@ -192,8 +209,8 @@ export const Select = WithController<SelectProps, ISelectRef>(WithLabel<SelectPr
         instanceId={props.id}
         key={props.id}
         classNamePrefix={props.id}
-        placeholder={props.label}
-        styles={customStyles}
+        placeholder={props.label} 
+        styles={customStyles} 
         name={props.id}
         options={props.options}
         ref={innerRef}

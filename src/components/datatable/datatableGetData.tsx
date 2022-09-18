@@ -19,7 +19,7 @@ export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
      let dataView = useMemo(() => {
         if (cols.filter(t => t.Sorted != null).length > 0) {
             let sort = cols.filter(t => t.Sorted != null)[0];
-            if (sort.columnControllerType == ControllerType.Number) {
+            if (sort.columnControllerType == ControllerType.InputNumber) {
 
                 if (sort.Sorted == "down")
                     viewData = viewData.sort((a, b) => { return (a[sort.dataKey].value > b[sort.dataKey].value) ? -1 : 0 })
@@ -125,7 +125,7 @@ export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
                                         }
                                     }
                                     break;
-                                case ControllerType.Number:
+                                case ControllerType.InputNumber:
                                     debugger
                                     let inputVal = searchData as NumberInputType;
                                     let val = _.isNumber(rowData) ? rowData : rowData.value;

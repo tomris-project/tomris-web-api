@@ -24,7 +24,7 @@ export interface IModalProps {
 export interface IModalRef {
     isOpen: (status: boolean) => Promise<void>
     toggle: () => void
-    setBody: React.Dispatch<React.SetStateAction<string |  React.ReactNode  | ((that: IModalRef) => React.ReactNode)>>
+    setBody: React.Dispatch<React.SetStateAction<string | React.ReactNode | ((that: IModalRef) => React.ReactNode)>>
 }
 export const Modal = WithController<IModalProps, IModalRef>(React.forwardRef((props: IModalProps, ref: React.ForwardedRef<IModalRef>) => {
     const [modal, setModal] = useState(props.isOpen);
@@ -138,8 +138,7 @@ const ConfirmSelect = async (props: SelectConfirm) => {
         if (typeof window === 'undefined') {
             return;
         }
-        const SelectButton = (that: IModalRef, option: SelectOption) => {
-            debugger
+        const SelectButton = (that: IModalRef, option: SelectOption) => { 
             that.isOpen(false);
             root.unmount()
             done(option.Value);
@@ -147,8 +146,8 @@ const ConfirmSelect = async (props: SelectConfirm) => {
 
         const Buttons = (that: IModalRef) => {
             let bodyFooter: { letf: any[], right: any[] } = { letf: [], right: [] };
-            props.options.map(t => {
-                let c = <Button isLabelHidden color={t.Color} id={t.Value} key={t.Value} label={t.Label} onClick={() => { SelectButton(that, t) }} />;
+            props.options.map((t,index) => {
+                let c = <Button isLabelHidden color={t.Color} id={index.toString()} key={index.toString()} label={t.Label} onClick={() => { SelectButton(that, t) }} />;
 
                 if ((t.Position ?? "Right") == "Right") {
                     bodyFooter.right.push(c);
@@ -188,16 +187,19 @@ const ConfirmSelect = async (props: SelectConfirm) => {
 }
 export const Confirm = {
     ConfirmSelect: ConfirmSelect,
-    ConfirmBoolean: async (Header: string, Body: string, TrueButton: string, FalseButton: string, ScreenCode: string, FormCode?: string) => {
-        return await ConfirmSelect({
+    ConfirmBoolean: async (Header: string, Body: string, TrueButton: string, FalseButton?: string, ScreenCode?: string, FormCode?: string) => {
+        let obj: SelectConfirm = {
             ScreenCode: ScreenCode,
             body: Body,
             FormCode: FormCode,
             header: Header,
             options: [
-                { Label: TrueButton, Value: true, Color: "success", Position: "Left" },
-                { Label: FalseButton, Value: false, Color: "danger", Position: "Right" }
+                { Label: TrueButton, Value: true, Color: "success", Position: "Left" }
             ]
-        })
+        };
+        if (FalseButton != null) {
+            obj.options.push({ Label: FalseButton, Value: false, Color: "danger", Position: "Right" });
+        }
+        return await ConfirmSelect(obj)
     },
 }

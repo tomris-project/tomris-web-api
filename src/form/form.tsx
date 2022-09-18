@@ -8,10 +8,10 @@ import { IInputNumberRef } from "../component";
 export interface FormRef extends ScreenControllerAction<iFormProps> {
 
   getControllers: () => Record<string, ObjectRefs>;
-  setValues: (Data: any) => void
+  setValue: (Data: any) => void
 
-  getHiddenData:()=>any
-  setHiddenData:(data:any)=>void
+  getHiddenData: () => any
+  setHiddenData: (data: any) => void
 }
 
 interface ObjectRefs {
@@ -34,7 +34,7 @@ interface iFormPropsInside extends iFormProps {
 export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardRef<FormRef, iFormProps>((propsdata: iFormProps, ref: React.ForwardedRef<FormRef>) => {
   const props = propsdata as iFormPropsInside;
   let [refs] = useState<Record<string, ObjectRefs>>(Object.create({}));
-  let [hiddenData,setHiddenData] = useState<any>(Object.create({}));
+  let [hiddenData, setHiddenData] = useState<any>(Object.create({}));
   const [open, SetOpen] = useState(false);
   let [alertText, SetAlertText] = useState<string[]>([]);
   const getBaseController = (name?: string): BaseControllerValueRef<any, any> => {
@@ -48,7 +48,7 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
     }
     return null;
   }
-  const getValues = (): any => {
+  const getValue = (): any => {
     let Data: any = {};
     let keys = Object.keys(refs);
     for (let index = 0; index < keys.length; index++) {
@@ -59,12 +59,12 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
     }
     return Data;
   }
-  const setValues = (Data: any) => {
+  const setValue = (Data: any) => {
     //  let Data: any = {};
     let keys = Object.keys(Data);
     for (let index = 0; index < keys.length; index++) {
       try {
-        let t = keys[index]; 
+        let t = keys[index];
         if (refs[t] != null && refs[t].controllerClass == ControllerClassType.Input) {
 
           refs[t].event.setValue(Data[t]);
@@ -75,12 +75,12 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
     }
   }
   let [FomRef] = useState<FormRef>({
-    register: (props) => {
-      let name = props.getProps().id
+    register: (props,name:string=null) => {
+      name = props.getProps().id??name
       refs[name] = { controllerClass: props.controllerClass, event: props, objectName: name, type: props.type };
     },
-    getHiddenData:()=>hiddenData,
-    setHiddenData:(data)=>{ hiddenData=data; setHiddenData(data)},
+    getHiddenData: () => hiddenData,
+    setHiddenData: (data) => { hiddenData = data; setHiddenData(data) },
     type: ScreenControllerType.Form,
     isController: () => true,
     getControllers: () => refs as any,
@@ -88,8 +88,8 @@ export const FormView = WithScreenController<iFormProps, FormRef>(React.forwardR
     getController: (name?) => getBaseController(name),
     getBaseController: getBaseController,
     getNumberInputController: (name?) => getBaseController(name) as IInputNumberRef,
-    getValues: getValues,
-    setValues: setValues,
+    getValue: getValue,
+    setValue: setValue,
     isValid: () => {
       let status: boolean = true;
       alertText = [];
@@ -185,10 +185,10 @@ export const useForm = () => {
     }
   }
 
-  const enhanced = WithScreenController((props: iFormProps) => {
+  const enhanced = WithScreenController(React.forwardRef((props: iFormProps, ref: React.ForwardedRef<FormRef>) => {
     const propData = { ...props, loadFormEvent: loadFormEvent };
-    return <FormView {...propData} />
-  })
+    return <FormView {...propData} ref={ref} />
+  }))
   useForm.View = enhanced;
   return useState(useForm)[0]
 }

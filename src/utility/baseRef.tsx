@@ -7,7 +7,7 @@ export enum ControllerType {
     Select = 2,
     Checkbox = 3,
     Date = 4,
-    Number = 5,
+    InputNumber = 5,
     DataTable = 10
 }
 

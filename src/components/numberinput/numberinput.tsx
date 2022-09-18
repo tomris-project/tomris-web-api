@@ -57,7 +57,7 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
     let formatVal = (innerRef.current as any).formatAsNumber(value?.toString())
     return { value: formatVal, numAsString: value?.toString(), mounted: true }
   }
-  const setValue = (value: NumberInputType, ext: string, type: string = "") => { 
+  const setValue = (value: NumberInputType, ext: string, type: string = "") => {
     if (ext == "setValue") {
       if (props.mode == "range") {
         (state as any)[type] = value.value;
@@ -102,7 +102,13 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
     return true;
   }
   const thatFnc: IInputNumberRef = {
-    getValue: () => state,
+    getValue: () => { 
+      if(props.type=="number" && props.mode=="input")
+      {
+        return state.value as any
+      }
+      return state; 
+    },
     setValue: setValue,
     clear: () => setValue(null, null),
     isHide: () => hidden,
@@ -139,7 +145,7 @@ export const InputNumber = WithController<InputNumberProps, IInputNumberRef>(Wit
   }
   props.controller?.register(thatFnc)
   useImperativeHandle(ref, () => (thatFnc));
-  const propNew: any = _.omit(props, ["defaultValue", "spacer", "onValid", "onChange", "curreny", 'currencyOptions', 'isLabelHidden', 'bsSize', 'mode']);
+  const propNew: any = _.omit(props, ["defaultValue", "spacer", "type", "onValid", "onChange", "curreny", 'currencyOptions', 'isLabelHidden', 'bsSize', 'mode']);
   useEffect(() => {
     thatFnc.isValid?.();
   })

@@ -15,6 +15,10 @@ export interface IconProps {
 export const Icon = (props: IconProps) :JSX.Element=> {
 
   let Icondata: any;
+  if(props.iconName==null)
+  {
+    return <></>
+  }
   if (_.isString(props.iconName)) {
     Icondata = (Icons as any)[props.iconName.toString()]
 

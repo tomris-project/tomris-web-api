@@ -22,7 +22,7 @@ export const AutoRenderForms = (insideEffect: InsideEffect, that: IDataTableRef)
 
     let ProccessTypeRenderForms: any[] = [{ form: props.SearchForm, setType: "SearchForm", modeForce: "range", BtnLabel: "Search", iconName: IconName.Search ,col:3,indeterminate:true }]
     //let ProccessTypeRenderForms = [{ form: props.SearchForm, setType: "SearchForm", modeForce: "range", BtnLabel: "Search", iconName: IconName.Search }]
-    if (that.getProps().eidtMode == "modal") {
+    if (that.getProps().editmode == "modal") {
         let editProps = { ...props.EditForm };
 
         const SaveData = (form: FormRef, that: IDataTableRef, data: any) => { 
@@ -57,7 +57,7 @@ export const AutoRenderForms = (insideEffect: InsideEffect, that: IDataTableRef)
                     })
                     let form = ReturnModal.ModalForm.getForm();
                     form.setHiddenData({ row: row, type: type });
-                    form.setValues(updateRow);
+                    form.setValue(updateRow);
                 })
             }
         })
@@ -77,38 +77,38 @@ export const AutoRenderForms = (insideEffect: InsideEffect, that: IDataTableRef)
             if (forms.form.formComponents == null) {
                 com = {
                     objectName: forms.setType, objectType: "Form", props: ({ name: forms.setType, responsiveSize: { col: forms.col } }),
-                    child: []
+                    children: []
                 };
 
                 props.columns.map((col, index) => {
 
-                    let row: RenderElement = { objectName: col.dataKey, objectType: "Input", props: {}, child: [] };
+                    let row: RenderElement = { objectName: col.dataKey, objectType: "Input", props: {}, children: [] };
                     col.columnControllerType = col.columnControllerType ?? ControllerType.Input;
                     switch (col.columnControllerType) {
                         case ControllerType.Input:
                             row.objectType = "Input"
                             row.props = { id: col.dataKey, label: col.columnName, ...col.columnControllerProps } as InputProps
-                            com.child.push(row)
+                            com.children.push(row)
                             break;
                         case ControllerType.Checkbox:
                             row.objectType = "Checkbox"
                             row.props = { id: col.dataKey, label: col.columnName, ...col.columnControllerProps, indeterminate: forms.indeterminate } as CheckboxProps
-                            com.child.push(row)
+                            com.children.push(row)
                             break;
                         case ControllerType.Date:
                             row.objectType = "Date"
                             row.props = { id: col.dataKey, label: col.columnName, mode: forms.modeForce, ...col.columnControllerProps } as DateProps
-                            com.child.push(row)
+                            com.children.push(row)
                             break;
-                        case ControllerType.Number:
+                        case ControllerType.InputNumber:
                             row.objectType = "InputNumber"
                             row.props = { id: col.dataKey, label: col.columnName, mode: forms.modeForce, ...col.columnControllerProps } as InputNumberProps
-                            com.child.push(row)
+                            com.children.push(row)
                             break;
                         case ControllerType.Select:
                             row.objectType = "Select"
                             row.props = { id: col.dataKey, label: col.columnName, mode: forms.modeForce, ...col.columnControllerProps } as SelectProps
-                            com.child.push(row)
+                            com.children.push(row)
                             break;
                     }
                 })
@@ -117,14 +117,14 @@ export const AutoRenderForms = (insideEffect: InsideEffect, that: IDataTableRef)
             if (com.objectType != "Form")
                 throw "Fisrt Search Component Only Form Start";
 
-            if (com.child == null)
-                com.child = [];
-            if (com.child.length > 0) {
-                if (com.child[com.child.length - 1].props == null)
-                    com.child[com.child.length - 1].props = {};
-                com.child[com.child.length - 1].props.spacer = true
+            if (com.children == null)
+                com.children = [];
+            if (com.children.length > 0) {
+                if (com.children[com.children.length - 1].props == null)
+                    com.children[com.children.length - 1].props = {};
+                com.children[com.children.length - 1].props.spacer = true
 
-                com.child.push({
+                com.children.push({
                     objectName: "SearchButton", objectType: "Button", props: {
                         id: "SearchBtn", isLabelHidden: true, label: forms.BtnLabel, className: "mt-2", icon: { iconName: forms.iconName },
                         onClick: () => {

@@ -10,18 +10,18 @@ export interface ScreenRef {
   register: (props: ScreenControllerAction<any> | IDataTableRef) => void
   getController: <T, P>(name?: string) => ScreenControllerAction<any>
   getBaseController: (name?: string) => ScreenControllerAction<any>
-  getValues: () => any
+  getValue: () => any
   isValid: () => boolean
   clear: () => void
 }
 
 
 export interface ScreenControllerAction<T> {
-  register: (props: BaseControllerValueRef<any, any>) => void
+  register: (props: BaseControllerValueRef<any, any>,name?:string) => void
   getController: <T, P>(name?: string) => BaseControllerValueRef<any, any>
   getBaseController: (name?: string) => BaseControllerValueRef<any, any>
   getNumberInputController: (name?: string) => IInputNumberRef
-  getValues: () => any
+  getValue: () => any
   getProps: () => T
   isController: () => boolean
   isValid?: () => boolean
@@ -56,13 +56,13 @@ export const ScreenView = React.forwardRef<ScreenRef, iScreenProps>((props: iScr
     }
     return null;
   }
-  const getValues = (): any => {
+  const getValue = (): any => {
     let Data: any = {};
     let keys = Object.keys(refs);
     for (let index = 0; index < keys.length; index++) {
       let t = keys[index];
       if (refs[t].type == ScreenControllerType.Form || refs[t].type == ScreenControllerType.DataTable) {
-        Data[t] = refs[t].event.getValues();
+        Data[t] = refs[t].event.getValue();
       }
     }
     return Data;
@@ -70,11 +70,11 @@ export const ScreenView = React.forwardRef<ScreenRef, iScreenProps>((props: iScr
   let [ScreenRef] = useState<ScreenRef>({
     register: (props) => {
       let name = props.getProps().name
-      refs[name] = { event: props, objectName: name, type: props.type };
+      refs[name] = { event: props, objectName: name, type: props.type as ScreenControllerType };
     },
     getController: (name?) => getBaseController(name),
     getBaseController: getBaseController,
-    getValues: getValues,
+    getValue: getValue,
     isValid: () => {
       let status: boolean = true;
       alertText = [];
@@ -142,14 +142,13 @@ export const ScreenView = React.forwardRef<ScreenRef, iScreenProps>((props: iScr
   const toggleNavbar = () => setCollapsed(!collapsed);
   return (
     <div>
-      <Navbar fixed="top" container="fluid">
-        <Card style={{ width: "100%", }}>
-          <Row>
-            <Col md="11" xl="11" xxl="11" sm="11" xs="11" lg="11" >
-              <ButtonGroup className="me-auto" style={{ marginTop: "3px" }}>
-                <Button color="link" isLabelHidden id="Save" icon={{ iconName: IconName.Save }} />
-              </ButtonGroup>
-              {/* <Collapse isOpen={!collapsed} navbar>
+      <Navbar style={{ border: "1px solid #dadada", borderRadius: 5 }}>
+        <Row>
+          <Col md="11" xl="11" xxl="11" sm="11" xs="11" lg="11" >
+            <ButtonGroup className="me-auto" style={{ marginTop: "3px" }}>
+              <Button color="link" isLabelHidden id="Save" icon={{ iconName: IconName.Save }} />
+            </ButtonGroup>
+            {/* <Collapse isOpen={!collapsed} navbar>
                 <Nav navbar>
                   <NavItem>
                     <NavLink href="/components/">Components</NavLink>
@@ -161,16 +160,17 @@ export const ScreenView = React.forwardRef<ScreenRef, iScreenProps>((props: iScr
                   </NavItem>
                 </Nav>
               </Collapse> */}
-            </Col>
-            <Col md="1" xl="1" xxl="1" sm="1" xs="1" lg="1">
-              <div className="d-block d-sm-none d-md-none d-lg-none d-xl-none d-xxl-none">
-                <NavbarToggler style={{ float: "right" }} onClick={toggleNavbar} className="btn-sm" />
-              </div>
-            </Col>
-          </Row>
-        </Card>
+          </Col>
+          <Col md="1" xl="1" xxl="1" sm="1" xs="1" lg="1">
+            <div className="d-block d-sm-none d-md-none d-lg-none d-xl-none d-xxl-none">
+              <NavbarToggler style={{ float: "right" }} onClick={toggleNavbar} className="btn-sm" />
+            </div>
+          </Col>
+        </Row>
       </Navbar>
-      <div style={{ marginTop: 70 }}>
+      <div style={{
+        marginTop: 10
+      }}>
         <Alert fade toggle={(e) => { SetOpen(false) }} isOpen={open} color="danger">{alertText.map((t, index) => <p key={"key" + index.toString()}>{t}</p>)}</Alert>
         <View responsive={props.responsive} responsiveSize={props.responsiveSize} spacer={props.spacer} classext="mb-2">{childs}</View>
       </div>

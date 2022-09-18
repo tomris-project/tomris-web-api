@@ -17,7 +17,7 @@ export interface ITabPanelProps extends Omit<iLayoutTypeProps, 'spacer' | 'respo
     index?: number
 }
 export const TabPanel = (props: ITabPanelProps) => {
-    const propsNew = _.omit({ ...props }, ['tabRef',"responsiveSize"]);
+    const propsNew = _.omit({ ...props }, ['tabRef',"responsiveSize",'spacer' , 'responsive']);
     return (
         <TabPane {...propsNew} tabId={props.id}>
             <View responsiveSize={props.responsiveSize}>{props.children}</View>

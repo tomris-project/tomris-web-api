@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Row, Col, Table, Card, CardBody, CardHeader, CardFooter, ButtonGroup, InputGroup, Label } from "reactstrap"
-import { BaseProps, ControllerType, ScreenControllerType } from "../../utility/baseRef"
+import { BaseProps, ControllerType, ScreenControllerType, BaseControllerValueRef, ControllerClassType } from "../../utility/baseRef"
 import { ColumnsGetDataDetails, ColumnsGetPage } from "./datatableGetData"
 import { ColumnsDetails, ColumnsDetailsHides, SingleFilter } from "./datatableHeader"
 import DataTableView, { SortOrder, type TableStyles, createTheme } from "react-data-table-component"
@@ -12,7 +12,7 @@ import { ScreenRef } from "../../screen"
 
 import { TableColumn } from "react-data-table-component"
 import { iLayoutTypeProps } from "../../hocs/withLayout"
-import { WithScreenController } from "../../hocs/withController"
+import { WithController, WithScreenController } from "../../hocs/withController"
 import { FormRef, iForm } from "../../form"
 import { AutoRenderForms } from "./datatableAutoRender"
 import { IconName, IconProps } from "../icon/icon"
@@ -20,6 +20,7 @@ import { UIModalRef, useModal } from "../../modal/modal"
 export interface ColumnType {
     dataKey: string
     columnName: string
+    columnIndex?: Number
     columnControllerType?: ControllerType
     columnControllerProps?: PropsApi
     isHidden?: boolean
@@ -36,21 +37,24 @@ export interface ColumnTypeinSide extends ColumnType {
 }
 
 export interface ActionsProps extends IconProps {
+    id?: string
     label: string
     onClick: (row: any, that: IDataTableRef, isHeader?: boolean) => void,
     isColAction?: boolean
 }
 export interface IDataTableProps extends iLayoutTypeProps {
     name: string
+    id?: string
     columns: ColumnType[]
     header?: string | React.ReactNode | JSX.Element
     data?: any[]
     isNotPage?: boolean
+    isNotDelete?: boolean
     isNotSort?: boolean
     filterType?: "multiple" | "single"
     filterTypeLabelExcelModeIsShow?: boolean
     selectLoadExp?: (row: any) => boolean
-    eidtMode?: "none" | "excel" | "modal"
+    editmode?: "none" | "excel" | "modal"
     currentPage?: number;
     pageSize?: number[];
     pageSizeDefault?: number;
@@ -63,6 +67,7 @@ export interface IDataTableProps extends iLayoutTypeProps {
     expandableRowsComponent?: (row: any) => any
     screencontroller?: ScreenRef
     actions?: ActionsProps[]
+    onChange?:(row:any,dataKey :string,RowIndex:Number,newvalue:any,OldValue:any)=>void
     SearchForm?: {
         /**
          * Search Form Search Button
@@ -91,6 +96,9 @@ export interface IDataTableProps extends iLayoutTypeProps {
          */
         onChange?: (props: RenderElement, before: RenderElement) => PropsApi
     }
+    isformcontroller?: boolean
+    controller?: FormRef
+    returntype?: "data" | "advance"
 }
 
 export interface UIDataTableRef extends IDataTableRef {
@@ -110,7 +118,7 @@ interface StateFull {
         selectPageSize: number
     }
 }
-export interface DataTableValues {
+export interface DataTableValuesType {
     Selected: any[]
     BaseData: any[]
     SearchForm: any
@@ -122,6 +130,8 @@ export interface DataTableValues {
         ExpandData: any[]
     }
 }
+
+export type DataTableValues = DataTableValuesType | any[]
 export interface InsideEffect {
     RederView: () => void
     state: StateFull,
@@ -132,7 +142,7 @@ export interface InsideEffect {
     getProps: () => IDataTableProps,
     getBaseData: () => any[],
     getCopyClearExport: (data: any[]) => any[],
-    getValues: () => DataTableValues,
+    getValue: () => DataTableValues,
     Add: (newRow: any, addIndex?: number) => void
     EditView: (Row: any, col: ColumnType, val: any) => void
     EditRow: (Row: any, Process: ProcessType) => any
@@ -158,9 +168,10 @@ export enum ProcessType {
     Update = 3,
     Delete = 4,
 }
-export interface IDataTableRef //extends ScreenControllerAction<IDataTableProps> 
+export interface IDataTableRef extends Omit<BaseControllerValueRef<DataTableValues, IDataTableProps>, "type" | "setValue" | "getProps">//extends ScreenControllerAction<IDataTableProps> 
 {
     Add: (newRow: any, addIndex?: number) => void
+
     UpdateCell: (RowIndex: number, dataKey: string, value: any, isRender?: boolean) => void
     UpdateCellExp: (exp: (t: any) => boolean, dataKey: string, value: any, isRender?: boolean) => void
     RowUpdate: (RowIndex: number, row: any, isRender?: boolean) => void
@@ -170,14 +181,16 @@ export interface IDataTableRef //extends ScreenControllerAction<IDataTableProps>
     Delete: (RowIndex: number, isRender?: boolean) => void
     DeleteExp: (exp: (t: any) => boolean) => void
     getProps: () => IDataTableProps
-    getValues: () => DataTableValues
+    getValue: () => DataTableValues
     getSearchForm: () => FormRef
-    type: ScreenControllerType
-
+    type: ScreenControllerType | ControllerType
+    setValue: (value: []) => boolean
 }
 
-export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props: IDataTableProps, ref?: React.ForwardedRef<IDataTableRef>) => {
-
+export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.forwardRef<IDataTableRef, IDataTableProps>((props: IDataTableProps, ref?: React.ForwardedRef<IDataTableRef>) => {
+    if (props.columns == null || props.columns.length == 0) {
+        return <>DataTable Designer</>
+    }
     let [load, SetLoad] = useState(false)
     let [renderCols, setRenderCols] = useState(false)
     const [toggledClearRows, setToggleClearRows] = useState(false);
@@ -197,15 +210,15 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 break;
             case ControllerType.Checkbox:
                 return val == true;
-            case ControllerType.Number:
-                if (props.eidtMode != "excel") {
+            case ControllerType.InputNumber:
+                if (props.editmode != "excel") {
                     if (_.isNumber(val)) {
                         return val;
-                    } else if (c.columnControllerProps.type == "currency") {
+                    } else if (c.columnControllerProps?.type == "currency") {
                         return val
                     }
                     else {
-                        return val.value;
+                        return val?.value;
                     }
                 }
                 if (_.isNumber(val)) {
@@ -217,7 +230,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
     }
 
     const createData = (data: any[], GUIDIndex: number = 0): any[] => {
-        let colCheck = props.columns.filter(t => t.columnControllerType == ControllerType.Date || t.columnControllerType == ControllerType.Checkbox || ControllerType.Number);
+        let colCheck = props.columns.filter(t => t.columnControllerType == ControllerType.Date || t.columnControllerType == ControllerType.Checkbox || ControllerType.InputNumber);
 
         let createData = (data != null ? [...data] : []).map((t, index) => {
             t.GUID = index + GUIDIndex;
@@ -240,14 +253,29 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
 
     const editModal = useModal();
     let [FullStateData] = useState<StateFull>({
-        cols: (props.columns.map((t: ColumnTypeinSide) => { t.ViewMode = useState(false)[0]; t.ColIconRef = { up: useRef(null), down: useRef(null) }; return t; })),
-        data: createData(props.data),
+        cols: (
+            props.columns
+                .map((t: ColumnTypeinSide, Index: number) => {
+                    if (t.columnIndex == null) {
+                        t.columnIndex = Index
+                    }
+                    t.columnControllerType=t.columnControllerType??ControllerType.Input;
+                    if(_.isString(t.columnControllerType))
+                    {
+                        debugger
+                       t.columnControllerType=ControllerType[t.columnControllerType as any] as any; 
+                    }
+                    t.ViewMode = useState(false)[0]; t.ColIconRef = { up: useRef(null), down: useRef(null) }; return t;
+                })
+                .sort((a, b) => { return (a.columnIndex  > b.columnIndex ) ? 0 : -1 })
+        ),
+        data: createData(props.data ?? []),
         ViewData: [],
         deleteData: [],
         filterData: Object.create({}),
         editExcellRef: Object.create({}),
         page: { currentPage: 1, selectPageSize: 20 }
-    })
+    }) 
     const handleClearRows = () => {
         load = true;
         SetLoad(load);
@@ -271,36 +299,45 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         getProps: () => props,
         getCopyClearExport: (data: any[]) => {
             let newData: any[] = [];
+            let colCheck = props.columns.filter(t => t.columnControllerType == ControllerType.InputNumber || t.columnControllerType == ControllerType.Select);
+        
             data.map(t => {
-                let row = { ...t };
+                let row = { ...t }; 
+                colCheck.map(col => {
 
-                let colCheck = props.columns.filter(t => ControllerType.Number);
-
-                colCheck.map(t => {
-
-                    switch (t.columnControllerType) {
-                        case ControllerType.Number:
-                            if (t.columnControllerProps == null || t.columnControllerProps?.type == "number") {
-                                if (row[t.dataKey] != null && !_.isNumber(row[t.dataKey])) {
-                                    row[t.dataKey] = row[t.dataKey].value;
+                    switch (col.columnControllerType) {
+                        case ControllerType.InputNumber:
+                            if (col.columnControllerProps == null || col.columnControllerProps?.type == "number") {
+                                if (row[col.dataKey] != null && !_.isNumber(row[col.dataKey])) {
+                                    row[col.dataKey] = row[col.dataKey].value;
                                 }
                             }
                             break;
-                    }
-                })
-
-
+                        case ControllerType.Select:
+                            if (row[col.dataKey] != null && col.columnControllerProps != null) {
+                                if (col.columnControllerProps.returntype == "value") {
+                                    row[col.dataKey] = row[col.dataKey].value;
+                                } else if (t.columnControllerProps.returntype == "data") {
+                                    row[col.dataKey] = row[col.dataKey].data;
+                                }
+                            }
+                            break;
+                    } 
+                }) 
                 delete row.GUID;
                 delete row.DATATABLE;
                 newData.push(row);
             })
             return newData;
         },
-        getValues: () => {
+        getValue: () => {
+            if (props.returntype == "data") {
+                return insideEffect.getCopyClearExport(FullStateData.data)
+            }
             let SendData = {
                 Selected: insideEffect.getCopyClearExport(FullStateData.data.filter(t => t.DATATABLE.isSelected == true)),
                 BaseData: props.data ?? [],
-                SearchForm: thatFnc.getSearchForm?.()?.getValues?.(),
+                SearchForm: thatFnc.getSearchForm?.()?.getValue?.(),
                 Value: {
                     Insert: insideEffect.getCopyClearExport(FullStateData.data.filter(t => t.DATATABLE.Process == ProcessType.Insert)),
                     Delete: insideEffect.getCopyClearExport(FullStateData.deleteData),
@@ -324,8 +361,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 FullStateData.data.push(inData);
 
             } else
-                FullStateData.data.splice(addIndex, 0, inData);
-            //setData(FullStateData.data);
+                FullStateData.data.splice(addIndex, 0, inData); 
             insideEffect.RederView();
         },
         getCol: (dataKey: string): ColumnTypeinSide => {
@@ -362,11 +398,13 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 if (col != null) {
                     value = CleanData(value, col);
                 }
+                props.onChange?.( FullStateData.data[RowIndex][dataKey],dataKey,RowIndex,value,FullStateData.data[RowIndex][dataKey])
                 FullStateData.data[RowIndex][dataKey] = value;
+                
                 if (isRender == true) {
                     insideEffect.RederView();
                 }
-                if (props.eidtMode == "excel" && insideEffect.editExcellRef[RowIndex] != null && insideEffect.editExcellRef[RowIndex][dataKey] != null && insideEffect.editExcellRef[RowIndex][dataKey].current != null) {
+                if (props.editmode == "excel" && insideEffect.editExcellRef[RowIndex] != null && insideEffect.editExcellRef[RowIndex][dataKey] != null && insideEffect.editExcellRef[RowIndex][dataKey].current != null) {
                     try {
                         insideEffect.editExcellRef[RowIndex][dataKey].current.setValue(FullStateData.data[RowIndex][dataKey]);
                     } catch (e) {
@@ -440,10 +478,10 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         },
         DataTableViewSelectUser: (selected: { allSelected: boolean, selectedCount: number, selectedRows: any[] }) => {
 
-            FullStateData.data.filter(t => t.DATATABLE.isSelected == true && selected.selectedRows.filter(x => x.GUID == t.GUID).length == 0).map(t => {
+            FullStateData.data.filter(t => t?.DATATABLE?.isSelected == true && selected?.selectedRows.filter(x => x.GUID == t.GUID).length == 0).map(t => {
                 t.DATATABLE.isSelected = false;
             })
-            FullStateData.data.filter(t => t.DATATABLE.isSelected == false && selected.selectedRows.filter(x => x.GUID == t.GUID).length > 0).map(t => {
+            FullStateData.data.filter(t => t?.DATATABLE?.isSelected == false && selected?.selectedRows.filter(x => x.GUID == t.GUID).length > 0).map(t => {
                 t.DATATABLE.isSelected = true;
             })
         }
@@ -454,7 +492,6 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
 
     let thatFnc: IDataTableRef = {
         getProps: () => props,
-        getValues: insideEffect.getValues,
         type: ScreenControllerType.DataTable,
         Add: insideEffect.Add,
         UpdateCell: insideEffect.UpdateCell,
@@ -465,8 +502,18 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
         DeleteExp: insideEffect.DeleteExp,
         Selected: insideEffect.Selected,
         SelectedExp: insideEffect.SelectedExp,
-        getSearchForm: null
-
+        getSearchForm: null,
+        controllerClass: ControllerClassType.Input,
+        getValue: insideEffect.getValue,
+        isDisable: null,
+        isHide: null,
+        setDisable: null,
+        setHide: null,
+        setValue: (value: any[]) => {
+            insideEffect.state.data = value;
+            insideEffect.RederView();
+            return true
+        }
     }
 
 
@@ -484,8 +531,12 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
     React.useImperativeHandle(ref, () => (thatFnc));
 
     props.screencontroller?.register(thatFnc);
+    if (props.isformcontroller == true && props.controller != null) {
+        thatFnc.type = ControllerType.DataTable;
+        props.controller?.register(thatFnc as any, props.name)
+    }
 
-    const customStyles = {
+    const customStyles: TableStyles = {
         rows: {
             style: {
                 border: "1px solid #a7a7a7",
@@ -519,6 +570,11 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 borderRight: "1px solid #a7a7a7",
             },
         },
+        table: {
+            style: {
+                height: height / 2
+            }
+        }
 
     };
     load = true;
@@ -573,7 +629,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                             <ButtonGroup>
                                 <Button isLabelHidden color="info" onClick={(e) => { console.log(FullStateData.data); }} label="GetRawData" id="GetRawData" />
                                 <Button isLabelHidden color="info" onClick={(e) => { FullStateData.cols[0].isHidden = true; insideEffect.RederView(); }} label="GetRawData" id="GetRawData" />
-                                <Button isLabelHidden color="info" onClick={(e) => { console.log(thatFnc.getValues()); console.log(JSON.stringify(thatFnc.getValues())); }} label="GetData" id="GetData" />
+                                <Button isLabelHidden color="info" onClick={(e) => { console.log(thatFnc.getValue()); console.log(JSON.stringify(thatFnc.getValue())); }} label="GetData" id="GetData" />
                                 <Button color="danger" onClick={(e) => {
                                     let sayi: any = prompt("SAYI Giriniz", "0");
                                     sayi = _.toNumber(sayi);
@@ -655,22 +711,39 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                         </Col>
                     </Row>
                     <Row>
-                        <Col><Label>{props.header}</Label></Col>
-                        <Col xl={2} md={3} xs={12} xxl={2} lg={2}> <InputGroup style={{ float: "right", display: singleFilterMemo == null ? "block" : "flex", textAlign: "right" }}>
-                            {props.eidtMode == "modal" && (<Button isLabelHidden id="Add" style={{ height: 38 }} label={null} icon={{ iconName: IconName.Plus }} onClick={() => { insideEffect.EditInsertModal({}, ProcessType.Insert) }} />)}{columnsHides}{singleFilterMemo}</InputGroup> </Col>
+                        {!_.isEmpty(props.header) && (<Col><Label>{props.header}</Label></Col>)}
+                        <Col
+                            xl={_.isEmpty(props.header) ? 12 : 2}
+                            md={_.isEmpty(props.header) ? 12 : 3}
+                            xs={12} xxl={_.isEmpty(props.header) ? 12 : 2}
+                            lg={_.isEmpty(props.header) ? 12 : 2}>
+                            <InputGroup style={{ float: "right", display: singleFilterMemo == null ? "block" : "flex", textAlign: "right" }}>
+                                {
+                                    (props.editmode == "modal" || props.editmode == "excel") && (
+                                        <Button isLabelHidden id="Add" style={{ height: 38 }} label={null} icon={{ iconName: IconName.Plus }}
+                                            onClick={() => {
+                                                if (props.editmode == "modal")
+                                                    insideEffect.EditInsertModal({}, ProcessType.Insert);
+                                                else {
+                                                    thatFnc.Add({}, 0)
+                                                }
+                                            }} />)
+                                }{columnsHides}{singleFilterMemo}
+                            </InputGroup>
+                        </Col>
                     </Row>
                 </CardHeader>
                 <div >
 
                     <Row>
-                        <Col xl={12} sm={12} xs={12} xxl={12} md={12} lg={12}>
+                        <Col xl={12} sm={12} xs={12} xxl={12} md={12} lg={12}  >
                             <DataTableView
                                 keyField={"GUID"}
                                 theme="solarized"
                                 customStyles={customStyles}
                                 data={dataRow}
                                 pagination={false}
-                                dense
+                                dense={true}
                                 striped
                                 persistTableHead
                                 selectableRowsSingle={props.selectableRowsSingle}
@@ -680,7 +753,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                                 expandableRowsComponent={(e) => {
                                     return props.expandableRowsComponent?.(e);
                                 }}
-                                expandableRowExpanded={(e) => { return e.DATATABLE.isExpand == true }}
+                                expandableRowExpanded={(e) => { return e?.DATATABLE?.isExpand == true }}
                                 expandableRowDisabled={props.selectableRowDisabled}
                                 onRowExpandToggled={(e, rowData) => {
                                     rowData.DATATABLE.isExpand = e;
@@ -689,7 +762,7 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                                 onSelectedRowsChange={insideEffect.DataTableViewSelectUser}
                                 noDataComponent={(<div>-</div>)}
                                 highlightOnHover
-                                selectableRowSelected={(e) => { return e.DATATABLE.isSelected == true }}
+                                selectableRowSelected={(e) => { return e?.DATATABLE?.isSelected == true }}
                                 pointerOnHover
                                 responsive
                                 paginationResetDefaultPage={renderCols}
@@ -714,13 +787,13 @@ export const DataTable = React.forwardRef<IDataTableRef, IDataTableProps>((props
                 </CardFooter>
             </Card>
         </>)
-})
+}), "DataTable")
 
 
 
 export const useDataTable = () => {
     let ref = useRef<IDataTableRef>(null);
-    const enhanced = WithScreenController(React.forwardRef((props: IDataTableProps, refs?: React.ForwardedRef<IDataTableRef>) => {
+    const enhanced = WithScreenController(WithController(React.forwardRef((props: IDataTableProps, refs?: React.ForwardedRef<IDataTableRef>) => {
         if (refs != null)
             useEffect(() => {
                 ref = refs as any
@@ -728,7 +801,7 @@ export const useDataTable = () => {
         else
             refs = ref;
         return <DataTable {...props} ref={refs} />
-    }))
+    }), "DataTable"))
     let methods: UIDataTableRef = Object.create({});
     useEffect(() => {
         if (ref.current != null) {
@@ -739,6 +812,8 @@ export const useDataTable = () => {
         }
 
     }, [ref]);
+    (enhanced as any).IsController = true;
+    (enhanced as any).SubTypeName = "DataTable";
     methods.View = enhanced;
     return useState(methods)[0]
 }

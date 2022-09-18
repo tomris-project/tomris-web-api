@@ -65,7 +65,7 @@ export const Input = WithController<InputProps, IInputRef>(WithLabel<InputProps,
   useImperativeHandle(ref, () => (thatFnc));
   const propNew = _.omit(props, ["setHiddenLabel", "spacer", "onValid", "isLabelHidden"]);
   return <>
-    <InputBASE {...propNew} invalid={valid == true ? undefined : true} autoComplete={props.type == "password" ? "one-time-code" : "off"} defaultValue={state} hidden={hidden} innerRef={innerRef} bsSize={propNew.bsSize ?? "sm"}
+    <InputBASE {...propNew} invalid={valid == true ? undefined : true} autoComplete={props.type == "password" ? "one-time-code" : "off"} defaultValue={state} hidden={hidden} innerRef={innerRef} bsSize={propNew.bsSize ?? "sm"} 
       onChange={(e) => {
         try {
           thatFnc.setValue(e.target.value, "setValue");
