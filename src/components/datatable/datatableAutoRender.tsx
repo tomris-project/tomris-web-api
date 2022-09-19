@@ -66,7 +66,7 @@ export const AutoRenderForms = (insideEffect: InsideEffect, that: IDataTableRef)
 
 
     }
-
+ 
     ProccessTypeRenderForms.map(forms => {
 
         if (forms.form != null) {

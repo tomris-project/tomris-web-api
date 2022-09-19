@@ -67,7 +67,7 @@ export interface IDataTableProps extends iLayoutTypeProps {
     expandableRowsComponent?: (row: any) => any
     screencontroller?: ScreenRef
     actions?: ActionsProps[]
-    onChange?:(row:any,dataKey :string,RowIndex:Number,newvalue:any,OldValue:any)=>void
+    onChange?: (row: any, dataKey: string, RowIndex: Number, newvalue: any, OldValue: any) => void
     SearchForm?: {
         /**
          * Search Form Search Button
@@ -188,6 +188,7 @@ export interface IDataTableRef extends Omit<BaseControllerValueRef<DataTableValu
 }
 
 export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.forwardRef<IDataTableRef, IDataTableProps>((props: IDataTableProps, ref?: React.ForwardedRef<IDataTableRef>) => {
+
     if (props.columns == null || props.columns.length == 0) {
         return <>DataTable Designer</>
     }
@@ -259,23 +260,21 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
                     if (t.columnIndex == null) {
                         t.columnIndex = Index
                     }
-                    t.columnControllerType=t.columnControllerType??ControllerType.Input;
-                    if(_.isString(t.columnControllerType))
-                    {
-                        debugger
-                       t.columnControllerType=ControllerType[t.columnControllerType as any] as any; 
+                    t.columnControllerType = t.columnControllerType ?? ControllerType.Input;
+                    if (_.isString(t.columnControllerType)) {
+                        t.columnControllerType = ControllerType[t.columnControllerType as any] as any;
                     }
                     t.ViewMode = useState(false)[0]; t.ColIconRef = { up: useRef(null), down: useRef(null) }; return t;
                 })
-                .sort((a, b) => { return (a.columnIndex  > b.columnIndex ) ? 0 : -1 })
+                .sort((a, b) => { return (a.columnIndex > b.columnIndex) ? 0 : -1 })
         ),
         data: createData(props.data ?? []),
         ViewData: [],
         deleteData: [],
         filterData: Object.create({}),
         editExcellRef: Object.create({}),
-        page: { currentPage: 1, selectPageSize: 20 }
-    }) 
+        page: { currentPage: 1, selectPageSize: 10 }
+    })
     const handleClearRows = () => {
         load = true;
         SetLoad(load);
@@ -300,9 +299,9 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
         getCopyClearExport: (data: any[]) => {
             let newData: any[] = [];
             let colCheck = props.columns.filter(t => t.columnControllerType == ControllerType.InputNumber || t.columnControllerType == ControllerType.Select);
-        
+
             data.map(t => {
-                let row = { ...t }; 
+                let row = { ...t };
                 colCheck.map(col => {
 
                     switch (col.columnControllerType) {
@@ -322,8 +321,8 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
                                 }
                             }
                             break;
-                    } 
-                }) 
+                    }
+                })
                 delete row.GUID;
                 delete row.DATATABLE;
                 newData.push(row);
@@ -361,7 +360,7 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
                 FullStateData.data.push(inData);
 
             } else
-                FullStateData.data.splice(addIndex, 0, inData); 
+                FullStateData.data.splice(addIndex, 0, inData);
             insideEffect.RederView();
         },
         getCol: (dataKey: string): ColumnTypeinSide => {
@@ -398,9 +397,9 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
                 if (col != null) {
                     value = CleanData(value, col);
                 }
-                props.onChange?.( FullStateData.data[RowIndex][dataKey],dataKey,RowIndex,value,FullStateData.data[RowIndex][dataKey])
+                props.onChange?.(FullStateData.data[RowIndex][dataKey], dataKey, RowIndex, value, FullStateData.data[RowIndex][dataKey])
                 FullStateData.data[RowIndex][dataKey] = value;
-                
+
                 if (isRender == true) {
                     insideEffect.RederView();
                 }
@@ -556,9 +555,9 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
                 paddingLeft: '0px', // override the cell padding for data cells
                 paddingRight: '0px',
                 border: "1px solid #a7a7a7",
-                borderBottom: "0px",
-
+                borderBottom: "0px", 
                 backgroundColor: '#e4e4e4',
+                
 
             },
         },
@@ -587,12 +586,19 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
         background: {
             default: '#FFFFFF',
         },
+
         context: {
             background: '#e3f2fd',
             text: 'rgba(0, 0, 0, 0.87)',
         },
         divider: {
             default: 'rgba(0,0,0,.12)',
+        },
+
+        action: {
+            button: 'rgba(0,0,0,.54)',
+            hover: 'rgba(0,0,0,.08)',
+            disabled: 'rgba(0,0,0,.12)',
         },
         button: {
             default: 'rgba(0,0,0,.54)',
@@ -606,14 +612,15 @@ export const DataTable = WithController<IDataTableProps, IDataTableRef>(React.fo
         },
         highlightOnHover: {
             default: '#EEEEEE',
-            text: 'rgba(0, 0, 0, 0.87)',
+            text: 'rgba(0, 0, 0, 1)',
         },
         striped: {
             default: '#FAFAFA',
-            text: 'rgba(0, 0, 0, 0.87)',
+            text: 'rgba(0, 0, 0, 1)',
         },
 
     }, 'default');
+ 
     return (
         <>
             <editModal.View autoClear={true} backdrop size="xl" header={props.header} />

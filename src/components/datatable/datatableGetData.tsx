@@ -10,13 +10,13 @@ import Moment from 'moment';
 import { BaseDate } from "../../utility/BaseDate";
 
 
-export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
+export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect) => {
 
 
-    let cols: ColumnTypeinSide[]=insinsideEffect.state.cols;
+    let cols: ColumnTypeinSide[] = insinsideEffect.state.cols;
     let viewData: any[] = insinsideEffect.state.data;
 
-     let dataView = useMemo(() => {
+    let dataView = useMemo(() => {
         if (cols.filter(t => t.Sorted != null).length > 0) {
             let sort = cols.filter(t => t.Sorted != null)[0];
             if (sort.columnControllerType == ControllerType.InputNumber) {
@@ -54,6 +54,7 @@ export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
             } else {
 
                 let searchcols = Object.keys(insinsideEffect.filterData);
+                console.log(insinsideEffect.filterData);
 
                 let searchCols = cols.filter(col => {
 
@@ -126,7 +127,6 @@ export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
                                     }
                                     break;
                                 case ControllerType.InputNumber:
-                                    debugger
                                     let inputVal = searchData as NumberInputType;
                                     let val = _.isNumber(rowData) ? rowData : rowData.value;
 
@@ -139,9 +139,18 @@ export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
                                     }
                                     break;
                                 case ControllerType.Select:
-                                    if (!(rowData != null && null != searchData && rowData.value == searchData.value)) {
-                                        status = false;
-                                    }
+                                    if (null != searchData && (searchData as any[]).length > 0) {
+                                        if (typeof rowData == "object") {
+                                            if (!(rowData != null && (searchData as any[]).filter(t => t.value == rowData.value).length > 0)) {
+                                                status = false;
+                                            }
+                                        }
+                                        else if (typeof rowData != "object") {
+                                            if (!(rowData != null && (searchData as any[]).filter(t => t.value == rowData).length > 0)) {
+                                                status = false;
+                                            }
+                                        }
+                                    } 
                                     break;
                             }
 
@@ -159,15 +168,15 @@ export const ColumnsGetDataDetails = (insinsideEffect: InsideEffect ) => {
 
 
         }
-        insinsideEffect.state.filterCount=viewData.length; 
-        let size=insinsideEffect.state.page.selectPageSize;
-        let Page=insinsideEffect.state.page.currentPage;
-        viewData = viewData.slice(size * (Page - 1), (Page) * size)  
+        insinsideEffect.state.filterCount = viewData.length;
+        let size = insinsideEffect.state.page.selectPageSize;
+        let Page = insinsideEffect.state.page.currentPage;
+        viewData = viewData.slice(size * (Page - 1), (Page) * size)
         insinsideEffect.ViewData = viewData;
         return viewData;
-    }, [insinsideEffect.renderCols,insinsideEffect.state.page.currentPage, insinsideEffect.state.page.selectPageSize])
+    }, [insinsideEffect.renderCols, insinsideEffect.state.page.currentPage, insinsideEffect.state.page.selectPageSize])
 
-   return dataView;
+    return dataView;
 }
 
 export interface Paging {
@@ -180,21 +189,19 @@ export interface Paging {
 
 export const ColumnsGetPage = (props: IDataTableProps, insideEffect: InsideEffect): Paging => {
 
- 
 
-    if(insideEffect.state.page.currentPage==null)
-    {
+
+    if (insideEffect.state.page.currentPage == null) {
         insideEffect.state.page.currentPage = insideEffect.state.page.currentPage == 0 ? 1 : insideEffect.state.page.currentPage
     }
-    
-    let sizeList = props.pageSize ?? [10, 20, 50, 100]; 
-    if (insideEffect.state.page.selectPageSize==null)
-    {
-        insideEffect.state.page.selectPageSize=props.pageSizeDefault ?? sizeList[0];
-    } 
-    let lastPage = Math.ceil((insideEffect.state.filterCount??0) / insideEffect.state.page.selectPageSize);
+
+    let sizeList = props.pageSize ?? [10, 20, 50, 100];
+    if (insideEffect.state.page.selectPageSize == null) {
+        insideEffect.state.page.selectPageSize = props.pageSizeDefault ?? sizeList[0];
+    }
+    let lastPage = Math.ceil((insideEffect.state.filterCount ?? 0) / insideEffect.state.page.selectPageSize);
     if (lastPage == 0)
-        lastPage = 1; 
+        lastPage = 1;
     const SetPage = (page: number) => {
         if (page == 0)
             page = 1;
@@ -203,7 +210,7 @@ export const ColumnsGetPage = (props: IDataTableProps, insideEffect: InsideEffec
         }
         insideEffect.state.page.currentPage = page;
         pageInput.current.setValue({ value: insideEffect.state.page.currentPage });
-        insideEffect.state.page.currentPage = insideEffect.state.page.currentPage == 0 ? 1 : insideEffect.state.page.currentPage 
+        insideEffect.state.page.currentPage = insideEffect.state.page.currentPage == 0 ? 1 : insideEffect.state.page.currentPage
         insideEffect.RederView();
     }
 
@@ -211,8 +218,8 @@ export const ColumnsGetPage = (props: IDataTableProps, insideEffect: InsideEffec
 
     const pageInput = useRef<IInputNumberRef>(null);
 
-     let page = useMemo(() => {
-       return  (<Pagination style={{ padding: 0, margin: 0 }}>
+    let page = useMemo(() => {
+        return (<Pagination style={{ padding: 0, margin: 0 }}>
             <PaginationItem>
                 <PaginationLink
                     first
@@ -235,7 +242,7 @@ export const ColumnsGetPage = (props: IDataTableProps, insideEffect: InsideEffec
             </PaginationItem>
             <PaginationItem onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                 <div className="page-link" style={{ padding: 2, paddingBottom: 3 }}>
-                    <Select id={"select"} feedBackBorder="both" noBorder defaultValue={{ label: insideEffect.state.page.selectPageSize.toString(), value: insideEffect.state.page.selectPageSize }} options={sizeList.map(t => { return { value: t, label: t.toString() } as any; })} isLabelHidden onChange={(e) => { insideEffect.state.page.selectPageSize = e.value;  SetPage(1); }} />
+                    <Select id={"select"} feedBackBorder="both" noBorder defaultValue={{ label: insideEffect.state.page.selectPageSize.toString(), value: insideEffect.state.page.selectPageSize }} options={sizeList.map(t => { return { value: t, label: t.toString() } as any; })} isLabelHidden onChange={(e) => { insideEffect.state.page.selectPageSize = e.value; SetPage(1); }} />
                 </div>
             </PaginationItem>
             <PaginationItem>
@@ -252,7 +259,7 @@ export const ColumnsGetPage = (props: IDataTableProps, insideEffect: InsideEffec
             </PaginationItem>
         </Pagination>)
 
-    }, [insideEffect.state.page.selectPageSize, insideEffect.state.filterCount ])
+    }, [insideEffect.state.page.selectPageSize, insideEffect.state.filterCount])
 
     return { view: page, event: { getPage: () => insideEffect.state.page.currentPage, getSize: () => insideEffect.state.page.selectPageSize } };
 }

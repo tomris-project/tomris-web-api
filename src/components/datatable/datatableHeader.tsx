@@ -60,9 +60,10 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
     
     let cols: ColumnTypeinSide[] = insideEffect.state.cols;
 
+    let editmode = insideEffect.getProps().editmode ?? "none"
     if (insideEffect.editExcellRef[-1] == null)
         insideEffect.editExcellRef[-1] = {}
-
+ 
     let headerCols = cols.filter(t => (t.isHidden ?? false) == false).map((c, index) => {
         c.columnControllerType = c.columnControllerType ?? ControllerType.Input;
         let columnName: string | React.ReactNode = c.columnName;
@@ -100,13 +101,13 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
                         }} />
                     break;
                 case ControllerType.Select:
-                    return <WebApi.Controller.Select id={c.columnName} isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}   {...c.columnControllerProps}
-                        placeholder={c.columnName}
+                    colObject =  <WebApi.Controller.Select id={c.columnName}  display="contents" isLabelHidden={insideEffect.getProps().filterTypeLabelExcelModeIsShow !== true}   {...c.columnControllerProps}
+                        placeholder={c.columnName} isClearable
                         label={insideEffect.getProps().filterTypeLabelExcelModeIsShow == true ? c.columnName : null}
                         onChange={(e) => {
                             insideEffect.filterData[c.dataKey] = e
                             insideEffect.RederView();
-                        }} />
+                        }} isMulti />
                     break;
                 case ControllerType.InputNumber:
 
@@ -147,7 +148,6 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
             columnName = <div key={c.columnName} style={{ textAlign: "center", flex: "1" }}>{columnName}</div>
         }
 
-        let editmode = insideEffect.getProps().editmode ?? "none"
         let col: TableColumn<any> = {
             name: columnName,
             omit: c.isHidden,
@@ -160,7 +160,7 @@ export const ColumnsDetails = (insideEffect: InsideEffect) => {
             center: c.columnControllerType == ControllerType.Checkbox,
             id: c.dataKey,
             right: c.columnControllerType == ControllerType.InputNumber,
-            cell: (row, rw, col, id) => {
+            cell: (row, rw, col, id) => { 
                 let rowIndex = insideEffect.getBaseData().findIndex(t => t.GUID == row.GUID);
                 // if (c.isNotEdit == true)
                 //     return row[c.dataKey];

@@ -66,7 +66,8 @@ export type PropsApi = iScreenProps | iFormProps | ButtonProps | ITabMainProps |
 
 export type objectType = string | "Screen" | "Form" | "Button" | "TabMain" | "TabPanel" | "Input" | "InputNumber" | "Select" | "Radio" | "Checkbox" | "Date" | "DataTable" | "Modal" | "Icon";
 export interface RenderElement {
-    key?: string
+    key?: string 
+    title?: string
     objectName: string
     objectType: objectType
     autorenderformname?: string

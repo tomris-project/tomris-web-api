@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ButtonGroup, Card, Col, DropdownItem, DropdownMenu, DropdownToggle, InputGroup, List, Offcanvas, OffcanvasBody, OffcanvasHeader, Row, UncontrolledDropdown } from "reactstrap"
+import { ButtonGroup, Card, Col, DropdownItem, DropdownMenu, DropdownToggle, InputGroup, List, Nav, NavItem, NavLink, Offcanvas, OffcanvasBody, OffcanvasHeader, Row, TabContent, TabPane, UncontrolledDropdown } from "reactstrap"
 import { Icon, IconName } from "../components/icon/icon"
 import { Button, ButtonProps } from "../components/button"
 import { InfoDrag, Key, Tree, TreeDataType } from "../components/tree/tree"
@@ -9,10 +9,10 @@ import { Input } from "../components/input"
 import { useForm } from "../form"
 import _ from "lodash"
 import { ActionsProps, IDataTableRef } from "../components/datatable"
+import { TabMain, TabPanel } from "../tab/tab"
 
 interface RenderElementTree extends RenderElement, TreeDataType {
-    key: string
-    title: string
+   
     children: RenderElementTree[]
 }
 
@@ -49,6 +49,7 @@ export const DesignerPage = () => {
     })
 
     const [render, SetRender] = useState(false)
+    const [view, setView] = useState("1")
     const [offcanvas, setOffcanvas] = useState(false)
     const [offcanvas2, setOffcanvas2] = useState(false)
     const RenderView = () => { SetRender(!render); thatEvent.RenderSampleScreen(); }
@@ -361,8 +362,42 @@ export const DesignerPage = () => {
                         debugger;
                         console.log([...state.TreeData]);
                     }} /></Col>
-                    <Col>
+                    {/* <Col>
                         {(autoRenderView != null && (<autoRenderView.View key={render ? "1" : "2"} />))}
+                    </Col> */}
+
+
+                    <Col  >
+                        <div>
+                            <Nav tabs>
+                                <NavItem>
+                                    <NavLink
+                                        className={view == "1" ? "active" : ""}
+                                        onClick={function noRefCheck() { setView("1"); }}
+                                    >
+                                        View Render
+                                    </NavLink>
+                                </NavItem>
+                                <NavItem  >
+                                    <NavLink
+                                        className={view == "2" ? "active" : ""}
+                                        onClick={function noRefCheck() { setView("2"); }}
+                                    >
+                                        JSON VIEW
+                                    </NavLink>
+                                </NavItem>
+                            </Nav>
+                            <TabContent activeTab={view}>
+                                <TabPane tabId="1">
+                                    {(autoRenderView != null && (<autoRenderView.View key={render ? "111" : "2222"} />))}
+                                </TabPane>
+                                <TabPane tabId="2">
+                                    <pre key={render ? "1a" : "2a"} style={{ overflow: "scroll", height: "calc(100vh - 140px)", border: "1px solid #dadada", borderRadius: "5px", padding: 10, backgroundColor: "#000", color: "#fff" }}>
+                                        {JSON.stringify(state.TreeData?.[0], null, '\t')}
+                                    </pre>
+                                </TabPane>
+                            </TabContent>
+                        </div>
                     </Col>
                 </Col>
             </Row>
